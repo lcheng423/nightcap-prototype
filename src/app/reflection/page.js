@@ -47,6 +47,20 @@ const cardStyle = {
   boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.05)",
 };
 
+const CARD_LABELS = [
+  "Courtney's intention",
+  "Courtney's reflection",
+  "Courtney's photo",
+  "Courtney's photo",
+];
+
+const cardLabelStyle = {
+  fontFamily: "var(--font-din-rounded), sans-serif",
+  fontSize: 11,
+  fontWeight: 600,
+  color: "#423530",
+};
+
 function TypewriterText({ text }) {
   return text.split("").map((char, i) =>
     char === "\n" ? <br key={i} /> : <span key={i} className="typewriter-letter">{char}</span>
@@ -617,7 +631,9 @@ export default function ReflectionPage() {
                             }
                           }}
                           aria-label={`Card ${i}`}
-                        />
+                        >
+                          <span style={cardLabelStyle}>{CARD_LABELS[cardIndex]}</span>
+                        </div>
                       );
                     })}
                   </div>
@@ -767,7 +783,9 @@ export default function ReflectionPage() {
                   role="button"
                   tabIndex={0}
                   aria-label={`Card ${i + 1}`}
-                />
+                >
+                  <span style={cardLabelStyle}>{CARD_LABELS[i]}</span>
+                </div>
               );
             })}
           </div>

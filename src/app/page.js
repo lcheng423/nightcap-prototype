@@ -9,14 +9,38 @@ import statusBarImage from "./assets/Status bar.png";
 const REFLECTION_STATE_KEY = "reflectionState";
 const HAS_VIEWED_INSIGHT_KEY = "hasViewedInsight";
 
+const LONG_PRESS_MS = 400;
+const CELL_W = 189 + 8;
+const CELL_H = 252 + 8;
+const CARD_W = 189;
+const CARD_H = 252;
+const SWAP_HOVER_W = 50;
+const SWAP_HOVER_H = 70;
+
 export default function HomePage() {
   const [notifications] = useState(7);
   const [isLeaving, setIsLeaving] = useState(false);
   const [hasReflectionInProgress, setHasReflectionInProgress] = useState(false);
   const [hasViewedInsight, setHasViewedInsight] = useState(false);
+  const [order, setOrder] = useState([0, 1, 2, 3]);
+  const [longPressedCardIndex, setLongPressedCardIndex] = useState(null);
+  const [draggingSlot, setDraggingSlot] = useState(null);
+  const [heldCardId, setHeldCardId] = useState(null);
+  const [hoverSlot, setHoverSlot] = useState(null);
+  const [underCardOffset, setUnderCardOffset] = useState({ x: 0, y: 0 });
+  const [underCardScale, setUnderCardScale] = useState(1);
+  const [underCardRotate, setUnderCardRotate] = useState(0);
+  const [arrivalSlot, setArrivalSlot] = useState(null);
+  const [arrivalFromSlot, setArrivalFromSlot] = useState(null);
+  const [arrivalOffset, setArrivalOffset] = useState({ x: 0, y: 0 });
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const longPressTimerRef = useRef(null);
   const router = useRouter();
   const frameRef = useRef(null);
   const nextRouteRef = useRef("/reflection");
+  const gridRef = useRef(null);
+  const recentlySettledSlotsRef = useRef([]);
+  const lastDragStateRef = useRef({ draggingSlot: null, arrivalSlot: null });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -27,6 +51,149 @@ export default function HomePage() {
       /* ignore */
     }
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
+
+  const getSlotAtClient = useCallback((clientX, clientY) => {
+    const el = gridRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const relX = clientX - rect.left;
+    const relY = clientY - rect.top;
+    const col = Math.floor(relX / CELL_W);
+    const row = Math.floor(relY / CELL_H);
+    if (col < 0 || col > 1 || row < 0 || row > 3) return null;
+    const slot = row * 2 + col;
+    return slot <= 3 ? slot : null;
+  }, []);
+
+  const getSlotAtClientCenter = useCallback((clientX, clientY) => {
+    const el = gridRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const relX = clientX - rect.left;
+    const relY = clientY - rect.top;
+    const col = Math.floor(relX / CELL_W);
+    const row = Math.floor(relY / CELL_H);
+    if (col < 0 || col > 1 || row < 0 || row > 3) return null;
+    const slot = row * 2 + col;
+    if (slot > 3) return null;
+    const centerX = col * CELL_W + CARD_W / 2;
+    const centerY = row * CELL_H + CARD_H / 2;
+    const halfW = SWAP_HOVER_W / 2;
+    const halfH = SWAP_HOVER_H / 2;
+    if (Math.abs(relX - centerX) > halfW || Math.abs(relY - centerY) > halfH) return null;
+    return slot;
+  }, []);
+
+  useEffect(() => {
+    if (draggingSlot === null || hoverSlot === null || hoverSlot === draggingSlot) return;
+    const id = requestAnimationFrame(() => {
+      const dx = ((draggingSlot % 2) - (hoverSlot % 2)) * CELL_W;
+      const dy = (Math.floor(draggingSlot / 2) - Math.floor(hoverSlot / 2)) * CELL_H;
+      setUnderCardOffset({ x: dx * 0.1, y: dy * 0.1 });
+      setUnderCardScale(0.8);
+      setUnderCardRotate(8);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [draggingSlot, hoverSlot]);
+
+  useEffect(() => {
+    if (arrivalSlot === null || arrivalFromSlot === null) return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setArrivalOffset({ x: 0, y: 0 }));
+    });
+    return () => cancelAnimationFrame(id);
+  }, [arrivalSlot, arrivalFromSlot]);
+
+  const handleCardPointerDown = useCallback((e, slotIndex) => {
+    if (longPressTimerRef.current) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTimerRef.current = null;
+      setLongPressedCardIndex(slotIndex);
+      setDragPosition({ x: e.clientX, y: e.clientY });
+    }, LONG_PRESS_MS);
+  }, []);
+
+  const handleCardPointerMove = useCallback(
+    (e) => {
+      if (longPressedCardIndex !== null && draggingSlot === null) {
+        setDraggingSlot(longPressedCardIndex);
+        setHeldCardId(order[longPressedCardIndex]);
+      }
+      if (draggingSlot !== null || longPressedCardIndex !== null) {
+        setDragPosition({ x: e.clientX, y: e.clientY });
+      }
+      if (draggingSlot !== null) {
+        const slot = getSlotAtClientCenter(e.clientX, e.clientY);
+        if (slot !== null && slot !== draggingSlot) {
+          const fromSlot = draggingSlot;
+          const dx = ((slot % 2) - (fromSlot % 2)) * CELL_W;
+          const dy = (Math.floor(slot / 2) - Math.floor(fromSlot / 2)) * CELL_H;
+          setOrder((prev) => {
+            const next = [...prev];
+            next[fromSlot] = prev[slot];
+            next[slot] = prev[fromSlot];
+            return next;
+          });
+          setArrivalSlot(fromSlot);
+          setArrivalFromSlot(slot);
+          setArrivalOffset({ x: dx, y: dy });
+          setDraggingSlot(slot);
+          setHoverSlot(slot);
+          setUnderCardOffset({ x: 0, y: 0 });
+          setUnderCardScale(1);
+          setUnderCardRotate(0);
+        } else {
+          const slotAny = getSlotAtClient(e.clientX, e.clientY);
+          if (slotAny !== hoverSlot) setHoverSlot(slotAny);
+        }
+      }
+    },
+    [longPressedCardIndex, draggingSlot, hoverSlot, order, getSlotAtClient, getSlotAtClientCenter]
+  );
+
+  const handleCardPointerUp = useCallback(
+    (e) => {
+      e.currentTarget.releasePointerCapture?.(e.pointerId);
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+      const { draggingSlot: ds, arrivalSlot: as } = lastDragStateRef.current;
+      recentlySettledSlotsRef.current = [ds, as].filter((s) => s != null);
+      setTimeout(() => {
+        recentlySettledSlotsRef.current = [];
+      }, 500);
+      setDraggingSlot(null);
+      setHeldCardId(null);
+      setLongPressedCardIndex(null);
+      setHoverSlot(null);
+      setArrivalSlot(null);
+      setArrivalFromSlot(null);
+      setUnderCardOffset({ x: 0, y: 0 });
+      setUnderCardScale(1);
+      setUnderCardRotate(0);
+    },
+    []
+  );
+
+  const handleCardPointerLeave = useCallback((e) => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (draggingSlot === null) {
+      setLongPressedCardIndex(null);
+    } else {
+      setHoverSlot(null);
+    }
+  }, [draggingSlot]);
 
   const handlePrimaryButtonClick = useCallback(
     (e) => {
@@ -303,17 +470,18 @@ export default function HomePage() {
             </span>
           </a>
 
-          {/* From earlier today: 22px gap above section; heading + 4 boxes enter one at a time every time screen is shown */}
+          {/* Picked for you earlier today: 22px gap above section; heading + 4 boxes enter one at a time every time screen is shown */}
           <section style={{ marginTop: 22 }}>
             <h2
               className="text-[#423530] font-semibold tracking-tight home-first-enter"
               style={{ fontSize: 16.5, marginBottom: 12, animationDelay: "0s" }}
             >
-              From earlier today…
+              Picked for you earlier today
             </h2>
             {/* Card grid: 8px margin from screen edge on both sides (content has 24px padding → -16 pulls to 8px) */}
             <div style={{ marginLeft: -16, marginRight: -16 }}>
               <div
+                ref={gridRef}
                 style={{
                   display: "grid",
                   rowGap: 8,
@@ -322,10 +490,10 @@ export default function HomePage() {
                   gridTemplateColumns: "189px 189px",
                 }}
               >
-              {/* Card 1 – 189×252px */}
-              <div
-                className="transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer home-first-enter"
-                style={{
+              {[0, 1, 2, 3].map((slotIndex) => {
+                lastDragStateRef.current = { draggingSlot, arrivalSlot };
+                const isRecentlySettled = recentlySettledSlotsRef.current.includes(slotIndex);
+                const cardStyle = {
                   display: "flex",
                   padding: 24,
                   flexDirection: "column",
@@ -338,70 +506,101 @@ export default function HomePage() {
                   border: "1px solid rgba(0, 0, 0, 0.10)",
                   backgroundColor: "#F7F0E1",
                   boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.05)",
-                  animationDelay: "0.1s",
-                }}
-              />
+                  animationDelay: `${0.1 + slotIndex * 0.1}s`,
+                };
+                const isHoverTarget = hoverSlot !== null && hoverSlot !== draggingSlot && slotIndex === hoverSlot;
+                const isPlaceholder = draggingSlot !== null && order[slotIndex] === heldCardId;
+                const isArrivingSlot = slotIndex === arrivalSlot;
+                const cardId = isHoverTarget ? order[hoverSlot] : order[slotIndex];
+                const cardLabel = `Content ${cardId + 1}`;
 
-              {/* Card 2 */}
-              <div
-                className="transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer home-first-enter"
-                style={{
-                  display: "flex",
-                  padding: 24,
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: 10,
-                  width: 189,
-                  height: 252,
-                  boxSizing: "border-box",
-                  borderRadius: 28,
-                  border: "1px solid rgba(0, 0, 0, 0.10)",
-                  backgroundColor: "#F7F0E1",
-                  boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.05)",
-                  animationDelay: "0.2s",
-                }}
-              />
+                const numberStyle = {
+                  fontFamily: "var(--font-din-rounded), sans-serif",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#423530",
+                };
 
-              {/* Card 3 */}
-              <div
-                className="transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer home-first-enter"
-                style={{
-                  display: "flex",
-                  padding: 24,
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: 10,
-                  width: 189,
-                  height: 252,
-                  boxSizing: "border-box",
-                  borderRadius: 28,
-                  border: "1px solid rgba(0, 0, 0, 0.10)",
-                  backgroundColor: "#F7F0E1",
-                  boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.05)",
-                  animationDelay: "0.3s",
-                }}
-              />
-
-              {/* Card 4 */}
-              <div
-                className="transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer home-first-enter"
-                style={{
-                  display: "flex",
-                  padding: 24,
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: 10,
-                  width: 189,
-                  height: 252,
-                  boxSizing: "border-box",
-                  borderRadius: 28,
-                  border: "1px solid rgba(0, 0, 0, 0.10)",
-                  backgroundColor: "#F7F0E1",
-                  boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.05)",
-                  animationDelay: "0.4s",
-                }}
-              />
+                return (
+                  <div
+                    key={slotIndex}
+                    style={{ touchAction: "none" }}
+                    onPointerDown={(e) => handleCardPointerDown(e, slotIndex)}
+                    onPointerMove={handleCardPointerMove}
+                    onPointerUp={handleCardPointerUp}
+                    onPointerLeave={handleCardPointerLeave}
+                    onPointerCancel={handleCardPointerUp}
+                    onContextMenu={(e) => e.preventDefault()}
+                  >
+                    {isArrivingSlot ? (
+                      <div
+                        className="home-card-fly-snap"
+                        style={{
+                          ...cardStyle,
+                          transform: `translate(${arrivalOffset.x}px, ${arrivalOffset.y}px)`,
+                        }}
+                      >
+                        <span style={numberStyle}>{cardLabel}</span>
+                      </div>
+                    ) : isHoverTarget ? (
+                      <div
+                        className="home-first-enter home-card-fly-snap"
+                        style={{
+                          ...cardStyle,
+                          transform: `scale(${underCardScale}) rotate(${underCardRotate}deg) translate(${underCardOffset.x}px, ${underCardOffset.y}px)`,
+                        }}
+                      >
+                        <span style={numberStyle}>{cardLabel}</span>
+                      </div>
+                    ) : isPlaceholder ? (
+                      <div style={{ ...cardStyle, opacity: 0.35 }} aria-hidden>
+                        <span style={{ ...numberStyle, opacity: 0.5 }}>{cardLabel}</span>
+                      </div>
+                    ) : (
+                      <div
+                        className={`cursor-pointer hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 ease-out ${!isRecentlySettled ? "home-first-enter" : ""}`}
+                        style={cardStyle}
+                      >
+                        <span style={numberStyle}>{cardLabel}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               </div>
+              {draggingSlot !== null && (
+                <div
+                  className="pointer-events-none fixed z-50 home-held-wiggle"
+                  style={{
+                    left: dragPosition.x,
+                    top: dragPosition.y,
+                    width: 189,
+                    height: 252,
+                    transform: "translate(-50%, -50%)",
+                    display: "flex",
+                    padding: 24,
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    boxSizing: "border-box",
+                    borderRadius: 28,
+                    border: "1px solid rgba(0, 0, 0, 0.10)",
+                    backgroundColor: "#F7F0E1",
+                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "var(--font-din-rounded), sans-serif",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "#423530",
+                    }}
+                  >
+                    Content {heldCardId !== null ? heldCardId + 1 : ""}
+                  </span>
+                </div>
+              )}
             </div>
           </section>
 
