@@ -8,6 +8,22 @@ import statusBarImage from "./assets/Status bar.png";
 
 const REFLECTION_STATE_KEY = "reflectionState";
 const HAS_VIEWED_INSIGHT_KEY = "hasViewedInsight";
+const FIRST_LOAD_COMPLETE_KEY = "nightcap_hasCompletedFirstLoad";
+
+const WELCOME_TEXT = "Welcome, Courtney";
+const LOADING_STRINGS = [
+  "Tuning into your threads...",
+  "Learning what makes you, you...",
+  "We're still getting to know you...",
+  "Picking ideas for you...",
+  "Let's see what fits...",
+];
+const LOADING_STRING_INTERVAL_MS = 2500;
+const LOADING_CYCLE_DURATION_MS = 10000;
+const CARDS_FADEOUT_MS = 400;
+const CARD_ENTER_STAGGER_S = 0.0875;
+const FIRST_LOAD_TYPED_MESSAGE = "Here are some ideas for who you're becoming. Save one to start your day";
+const TYPEWRITER_MS = 22;
 
 const LONG_PRESS_MS = 400;
 const CELL_W = 189 + 8;
@@ -17,12 +33,18 @@ const CARD_H = 252;
 const SWAP_HOVER_W = 50;
 const SWAP_HOVER_H = 70;
 
+function TypewriterText({ text }) {
+  return text.split("").map((char, i) =>
+    char === "\n" ? <br key={i} /> : <span key={i} className="typewriter-letter">{char}</span>
+  );
+}
+
 export default function HomePage() {
   const [notifications] = useState(7);
   const [isLeaving, setIsLeaving] = useState(false);
   const [hasReflectionInProgress, setHasReflectionInProgress] = useState(false);
   const [hasViewedInsight, setHasViewedInsight] = useState(false);
-  const [order, setOrder] = useState([0, 1, 2, 3]);
+  const [order, setOrder] = useState([0, 1, 2, 3, 4, 5]);
   const [longPressedCardIndex, setLongPressedCardIndex] = useState(null);
   const [draggingSlot, setDraggingSlot] = useState(null);
   const [heldCardId, setHeldCardId] = useState(null);
@@ -34,7 +56,13 @@ export default function HomePage() {
   const [arrivalFromSlot, setArrivalFromSlot] = useState(null);
   const [arrivalOffset, setArrivalOffset] = useState({ x: 0, y: 0 });
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [isFirstTimeLoading, setIsFirstTimeLoading] = useState(true);
+  const [firstLoadPhase, setFirstLoadPhase] = useState("welcome");
+  const [welcomeTypedLength, setWelcomeTypedLength] = useState(0);
+  const [loadingStringIndex, setLoadingStringIndex] = useState(0);
+  const [instructionTypedLength, setInstructionTypedLength] = useState(0);
   const longPressTimerRef = useRef(null);
+  const loadingStartRef = useRef(null);
   const router = useRouter();
   const frameRef = useRef(null);
   const nextRouteRef = useRef("/reflection");
@@ -47,10 +75,79 @@ export default function HomePage() {
     try {
       setHasReflectionInProgress(!!localStorage.getItem(REFLECTION_STATE_KEY));
       setHasViewedInsight(!!sessionStorage.getItem(HAS_VIEWED_INSIGHT_KEY));
+      setIsFirstTimeLoading(!sessionStorage.getItem(FIRST_LOAD_COMPLETE_KEY));
     } catch (_) {
       /* ignore */
     }
   }, []);
+
+  /* Phase: welcome – type out "Welcome, Courtney" */
+  useEffect(() => {
+    if (!isFirstTimeLoading || firstLoadPhase !== "welcome") return;
+    let intervalId = null;
+    intervalId = setInterval(() => {
+      setWelcomeTypedLength((n) => {
+        if (n >= WELCOME_TEXT.length) {
+          if (intervalId) clearInterval(intervalId);
+          return n;
+        }
+        return n + 1;
+      });
+    }, TYPEWRITER_MS);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isFirstTimeLoading, firstLoadPhase]);
+
+  useEffect(() => {
+    if (!isFirstTimeLoading || firstLoadPhase !== "welcome" || welcomeTypedLength < WELCOME_TEXT.length) return;
+    setFirstLoadPhase("loading");
+  }, [isFirstTimeLoading, firstLoadPhase, welcomeTypedLength]);
+
+  /* Phase: loading – cycle strings + pulsing cards for 10s */
+  useEffect(() => {
+    if (!isFirstTimeLoading || firstLoadPhase !== "loading") return;
+    loadingStartRef.current = loadingStartRef.current ?? Date.now();
+    const id = setInterval(() => {
+      const elapsed = Date.now() - loadingStartRef.current;
+      if (elapsed >= LOADING_CYCLE_DURATION_MS) {
+        setFirstLoadPhase("fadeOut");
+        return;
+      }
+      setLoadingStringIndex((i) => (i + 1) % LOADING_STRINGS.length);
+    }, LOADING_STRING_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [isFirstTimeLoading, firstLoadPhase]);
+
+  /* Phase: fadeOut – remove pulsing cards (400ms), then start instruction */
+  useEffect(() => {
+    if (!isFirstTimeLoading || firstLoadPhase !== "fadeOut") return;
+    const id = setTimeout(() => setFirstLoadPhase("instruction"), CARDS_FADEOUT_MS);
+    return () => clearTimeout(id);
+  }, [isFirstTimeLoading, firstLoadPhase]);
+
+  /* Phase: instruction – type out save instruction */
+  useEffect(() => {
+    if (!isFirstTimeLoading || firstLoadPhase !== "instruction") return;
+    let intervalId = null;
+    intervalId = setInterval(() => {
+      setInstructionTypedLength((n) => {
+        if (n >= FIRST_LOAD_TYPED_MESSAGE.length) {
+          if (intervalId) clearInterval(intervalId);
+          return n;
+        }
+        return n + 1;
+      });
+    }, TYPEWRITER_MS);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isFirstTimeLoading, firstLoadPhase]);
+
+  useEffect(() => {
+    if (!isFirstTimeLoading || firstLoadPhase !== "instruction" || instructionTypedLength < FIRST_LOAD_TYPED_MESSAGE.length) return;
+    setFirstLoadPhase("cardsEnter");
+  }, [isFirstTimeLoading, firstLoadPhase, instructionTypedLength]);
 
   useEffect(() => {
     return () => {
@@ -66,9 +163,9 @@ export default function HomePage() {
     const relY = clientY - rect.top;
     const col = Math.floor(relX / CELL_W);
     const row = Math.floor(relY / CELL_H);
-    if (col < 0 || col > 1 || row < 0 || row > 3) return null;
+    if (col < 0 || col > 1 || row < 0 || row > 2) return null;
     const slot = row * 2 + col;
-    return slot <= 3 ? slot : null;
+    return slot <= 5 ? slot : null;
   }, []);
 
   const getSlotAtClientCenter = useCallback((clientX, clientY) => {
@@ -79,9 +176,9 @@ export default function HomePage() {
     const relY = clientY - rect.top;
     const col = Math.floor(relX / CELL_W);
     const row = Math.floor(relY / CELL_H);
-    if (col < 0 || col > 1 || row < 0 || row > 3) return null;
+    if (col < 0 || col > 1 || row < 0 || row > 2) return null;
     const slot = row * 2 + col;
-    if (slot > 3) return null;
+    if (slot > 5) return null;
     const centerX = col * CELL_W + CARD_W / 2;
     const centerY = row * CELL_H + CARD_H / 2;
     const halfW = SWAP_HOVER_W / 2;
@@ -378,119 +475,93 @@ export default function HomePage() {
           className="flex flex-col w-full"
           style={{ paddingLeft: 24, paddingRight: 24 }}
         >
-          {/* Greeting + moon */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0" style={{ maxWidth: 342 }}>
-              <h1
-                className="text-[#423530] mb-1"
-                style={{
-                  width: "100%",
-                  maxWidth: 342,
-                  fontFamily: "var(--font-din-rounded), sans-serif",
-                  fontSize: 32,
-                  fontStyle: "normal",
-                  fontWeight: 600,
-                  lineHeight: "98%",
-                  letterSpacing: -0.64,
-                }}
-              >
-                Good evening,
-                <br />
-                Courtney
-              </h1>
-              <p
-                className="text-[#423530]"
-                style={{
-                  width: 342,
-                  maxWidth: "100%",
-                  marginTop: 10,
-                  fontFamily: "var(--font-din-rounded), sans-serif",
-                  fontSize: 20,
-                  fontStyle: "normal",
-                  fontWeight: 600,
-                  lineHeight: "98%",
-                  letterSpacing: -0.4,
-                }}
-              >
-                Your day had <span className="font-bold">4 things</span>. Reflect
-                and get your daily insight <span className="align-text-top">✨</span>
-              </p>
-            </div>
-            {/* Moon – macOS emoji */}
-            <span className="flex-shrink-0 text-[48px] leading-none select-none" aria-hidden>
-              🌙
-            </span>
-          </div>
-
-          {/* Spacing between greeting and button: 22px */}
-          <div style={{ height: 22 }} />
-
-          {/* Start reflection / Continue / View my insights – Figma specs: 345×58, radius 20, shadow */}
-          <a
-            href={hasViewedInsight && !hasReflectionInProgress ? "/insight" : "/reflection"}
-            onClick={handlePrimaryButtonClick}
-            className="flex items-center justify-center no-underline transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
+          {/* Greeting: type out "Welcome, Courtney" then static */}
+          <h1
+            className="text-[#423530] mb-1"
             style={{
               width: "100%",
-              maxWidth: 345,
-              height: 58,
-              gap: 8,
-              borderRadius: 20,
-              background: "#FFF",
-              boxShadow: "0 4px 10px 0 rgba(0, 0, 0, 0.05)",
+              maxWidth: 342,
+              fontFamily: "var(--font-din-rounded), sans-serif",
+              fontSize: 32,
+              fontStyle: "normal",
+              fontWeight: 600,
+              lineHeight: "98%",
+              letterSpacing: -0.64,
+              minHeight: isFirstTimeLoading && firstLoadPhase === "welcome" ? "2.5em" : undefined,
             }}
           >
-            <svg
-              width="19"
-              height="23"
-              viewBox="0 0 19 23"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="block flex-shrink-0"
-              aria-hidden
-            >
-              <path
-                d="M0 19.2676V4.6875C0 2.86133 1.03516 1.94336 2.73438 1.82617C6.08398 1.61133 9.18945 1.10352 11.8652 0.478516C13.8672 0 15.0879 0.976562 15.0879 3.07617V17.334C15.0879 19.082 14.5508 19.9609 13.0273 20.4102C9.61914 21.3867 6.38672 21.8066 3.10547 21.9824C1.12305 22.1094 0 21.084 0 19.2676ZM8.26172 22.8906C9.94141 22.6172 11.6797 22.2559 13.4375 21.7676C15.4297 21.1816 16.5332 19.9805 16.5332 17.334V3.17383C16.5332 2.82227 16.5039 2.49023 16.4453 2.05078C17.8711 2.36328 18.6133 3.42773 18.6133 5.16602V19.5996C18.6133 21.7773 17.5098 22.8906 15.3613 22.8906H8.26172ZM2.03125 18.9355C2.03125 19.6191 2.4707 19.9902 3.18359 19.9512C6.35742 19.7852 9.39453 19.3848 12.168 18.584C12.832 18.3984 13.0566 18.0371 13.0566 17.2656V3.47656C13.0566 2.73438 12.6074 2.34375 11.8652 2.50977C9.17969 3.13477 6.14258 3.64258 3.06641 3.80859C2.46094 3.84766 2.03125 4.14062 2.03125 4.79492V18.9355ZM4.14062 7.31445C3.7793 7.34375 3.52539 7.07031 3.52539 6.73828C3.52539 6.43555 3.7207 6.17188 4.13086 6.13281C6.74805 5.95703 8.82812 5.58594 10.8398 5.12695C11.2988 5.0293 11.5527 5.32227 11.5527 5.64453C11.5527 5.92773 11.4355 6.18164 10.9668 6.28906C8.84766 6.75781 6.75781 7.13867 4.14062 7.31445ZM4.14062 10.2637C3.7793 10.2832 3.52539 10.0293 3.52539 9.6875C3.52539 9.375 3.7207 9.11133 4.13086 9.08203C6.74805 8.90625 8.82812 8.52539 10.8398 8.07617C11.2988 7.97852 11.5527 8.27148 11.5527 8.59375C11.5527 8.87695 11.4355 9.13086 10.9668 9.23828C8.84766 9.70703 6.75781 10.0781 4.14062 10.2637ZM4.14062 13.2129C3.7793 13.2324 3.52539 12.9688 3.52539 12.6367C3.52539 12.3242 3.7207 12.0605 4.13086 12.0312C6.74805 11.8457 8.82812 11.4746 10.8398 11.0254C11.2988 10.9277 11.5527 11.2207 11.5527 11.543C11.5527 11.8262 11.4355 12.0703 10.9668 12.1875C8.84766 12.6562 6.75781 13.0273 4.14062 13.2129ZM4.14062 16.1426C3.7793 16.1621 3.52539 15.9082 3.52539 15.5762C3.52539 15.2539 3.7207 14.9902 4.13086 14.9609C5.625 14.873 6.60156 14.7363 7.46094 14.5996C7.93945 14.5117 8.19336 14.8145 8.19336 15.1367C8.19336 15.4102 8.00781 15.6836 7.66602 15.752C6.68945 15.9082 5.67383 16.0547 4.14062 16.1426Z"
-                fill="#423530"
-              />
-            </svg>
-            <span
-              style={{
-                color: "#423530",
-                textAlign: "center",
-                fontFamily: "var(--font-din-rounded), \"DIN 2014 Rounded VF\", sans-serif",
-                fontSize: 20,
-                fontStyle: "normal",
-                fontWeight: 600,
-                lineHeight: "normal",
-                letterSpacing: -0.4,
-              }}
-            >
-              {primaryButtonLabel}
-            </span>
-          </a>
+            {isFirstTimeLoading && firstLoadPhase === "welcome" ? (
+              <TypewriterText text={WELCOME_TEXT.slice(0, welcomeTypedLength)} />
+            ) : (
+              <>Welcome, Courtney</>
+            )}
+          </h1>
 
-          {/* Picked for you earlier today: 22px gap above section; heading + 4 boxes enter one at a time every time screen is shown */}
-          <section style={{ marginTop: 22 }}>
-            <h2
-              className="text-[#423530] font-semibold tracking-tight home-first-enter"
-              style={{ fontSize: 16.5, marginBottom: 12, animationDelay: "0s" }}
-            >
-              Picked for you earlier today
-            </h2>
-            {/* Card grid: 8px margin from screen edge on both sides (content has 24px padding → -16 pulls to 8px) */}
-            <div style={{ marginLeft: -16, marginRight: -16 }}>
+          {/* Subtitle: empty during welcome; loading strings; then type instruction; then static */}
+          <p
+            className="text-[#423530]"
+            style={{
+              width: "100%",
+              maxWidth: 342,
+              marginTop: 10,
+              fontFamily: "var(--font-din-rounded), sans-serif",
+              fontSize: 20,
+              fontStyle: "normal",
+              fontWeight: 600,
+              lineHeight: "98%",
+              letterSpacing: -0.4,
+              minHeight: isFirstTimeLoading && firstLoadPhase !== "welcome" ? "1.96em" : undefined,
+              overflow: isFirstTimeLoading ? "hidden" : undefined,
+            }}
+          >
+            {isFirstTimeLoading && firstLoadPhase === "loading" ? (
+              <span
+                key={loadingStringIndex}
+                className="loading-text-enter block"
+              >
+                {LOADING_STRINGS[loadingStringIndex]}
+              </span>
+            ) : isFirstTimeLoading && firstLoadPhase === "instruction" ? (
+              <span className="block">
+                <TypewriterText text={FIRST_LOAD_TYPED_MESSAGE.slice(0, instructionTypedLength)} />
+              </span>
+            ) : isFirstTimeLoading && firstLoadPhase === "cardsEnter" ? (
+              <span className="block">{FIRST_LOAD_TYPED_MESSAGE}</span>
+            ) : !isFirstTimeLoading ? (
+              <>
+                Your day had <span className="font-bold">4 things</span>. Reflect
+                and get your daily insight <span className="align-text-top">✨</span>
+              </>
+            ) : null}
+          </p>
+
+          {/* Card grid: only show cards during loading (pulse) or cardsEnter (stagger). Unmount during instruction so cards mount fresh for stagger. */}
+          <div
+            style={{
+              marginTop: (!isFirstTimeLoading || firstLoadPhase === "cardsEnter") ? 32 : 16,
+              marginLeft: -16,
+              marginRight: -16,
+              transition: firstLoadPhase === "fadeOut" ? "opacity 0.4s ease-out" : "none",
+              opacity: isFirstTimeLoading && (firstLoadPhase === "welcome" || firstLoadPhase === "fadeOut" || firstLoadPhase === "instruction") ? 0 : 1,
+            }}
+          >
               <div
                 ref={gridRef}
                 style={{
                   display: "grid",
                   rowGap: 8,
                   columnGap: 8,
-                  gridTemplateRows: "repeat(4, 252px)",
+                  gridTemplateRows: "repeat(3, 252px)",
                   gridTemplateColumns: "189px 189px",
                 }}
               >
-              {[0, 1, 2, 3].map((slotIndex) => {
+              {isFirstTimeLoading && (firstLoadPhase === "welcome" || firstLoadPhase === "instruction") ? (
+                /* Placeholder: no cards during welcome or instruction so cards mount fresh for loading (pulse) and cardsEnter (stagger) */
+                [0, 1, 2, 3, 4, 5].map((slotIndex) => (
+                  <div key={slotIndex} style={{ width: 189, height: 252 }} aria-hidden />
+                ))
+              ) : (
+              [0, 1, 2, 3, 4, 5].map((slotIndex) => {
                 lastDragStateRef.current = { draggingSlot, arrivalSlot };
                 const isRecentlySettled = recentlySettledSlotsRef.current.includes(slotIndex);
                 const cardStyle = {
@@ -506,20 +577,12 @@ export default function HomePage() {
                   border: "1px solid rgba(0, 0, 0, 0.10)",
                   backgroundColor: "#F7F0E1",
                   boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.05)",
-                  animationDelay: `${0.1 + slotIndex * 0.1}s`,
+                  ...(firstLoadPhase === "cardsEnter" ? { "--card-enter-delay": `${slotIndex * CARD_ENTER_STAGGER_S}s` } : { animationDelay: `${0.1 + slotIndex * 0.1}s` }),
                 };
                 const isHoverTarget = hoverSlot !== null && hoverSlot !== draggingSlot && slotIndex === hoverSlot;
                 const isPlaceholder = draggingSlot !== null && order[slotIndex] === heldCardId;
                 const isArrivingSlot = slotIndex === arrivalSlot;
-                const cardId = isHoverTarget ? order[hoverSlot] : order[slotIndex];
-                const cardLabel = `Content ${cardId + 1}`;
-
-                const numberStyle = {
-                  fontFamily: "var(--font-din-rounded), sans-serif",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "#423530",
-                };
+                const showPulse = isFirstTimeLoading && firstLoadPhase === "loading";
 
                 return (
                   <div
@@ -534,39 +597,32 @@ export default function HomePage() {
                   >
                     {isArrivingSlot ? (
                       <div
-                        className="home-card-fly-snap"
+                        className={`home-card-fly-snap ${showPulse ? "home-card-pulse" : ""}`}
                         style={{
                           ...cardStyle,
                           transform: `translate(${arrivalOffset.x}px, ${arrivalOffset.y}px)`,
                         }}
-                      >
-                        <span style={numberStyle}>{cardLabel}</span>
-                      </div>
+                      />
                     ) : isHoverTarget ? (
                       <div
-                        className="home-first-enter home-card-fly-snap"
+                        className={`home-card-fly-snap ${showPulse ? "home-card-pulse" : ""} ${firstLoadPhase === "cardsEnter" ? "home-first-enter" : ""}`}
                         style={{
                           ...cardStyle,
                           transform: `scale(${underCardScale}) rotate(${underCardRotate}deg) translate(${underCardOffset.x}px, ${underCardOffset.y}px)`,
                         }}
-                      >
-                        <span style={numberStyle}>{cardLabel}</span>
-                      </div>
+                      />
                     ) : isPlaceholder ? (
-                      <div style={{ ...cardStyle, opacity: 0.35 }} aria-hidden>
-                        <span style={{ ...numberStyle, opacity: 0.5 }}>{cardLabel}</span>
-                      </div>
+                      <div className={showPulse ? "home-card-pulse" : ""} style={{ ...cardStyle, opacity: 0.35 }} aria-hidden />
                     ) : (
                       <div
-                        className={`cursor-pointer hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 ease-out ${!isRecentlySettled ? "home-first-enter" : ""}`}
+                        className={`cursor-pointer hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 ease-out ${showPulse ? "home-card-pulse" : ""} ${firstLoadPhase === "cardsEnter" ? "home-first-enter" : !isRecentlySettled ? "home-first-enter" : ""}`}
                         style={cardStyle}
-                      >
-                        <span style={numberStyle}>{cardLabel}</span>
-                      </div>
+                      />
                     )}
                   </div>
                 );
-              })}
+              })
+              )}
               </div>
               {draggingSlot !== null && (
                 <div
@@ -588,25 +644,13 @@ export default function HomePage() {
                     backgroundColor: "#F7F0E1",
                     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
                   }}
-                >
-                  <span
-                    style={{
-                      fontFamily: "var(--font-din-rounded), sans-serif",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: "#423530",
-                    }}
-                  >
-                    Content {heldCardId !== null ? heldCardId + 1 : ""}
-                  </span>
-                </div>
+                />
               )}
             </div>
-          </section>
+          </div>
 
           {/* Bottom padding so content doesn't touch edge */}
           <div style={{ height: 32 }} />
-        </div>
         </div>
       </main>
     </div>
