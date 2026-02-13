@@ -286,7 +286,7 @@ export default function ReflectionPage() {
       {/* Phone frame – fixed; only content inside slides */}
       <main
         ref={mainRef}
-        className={`relative overflow-hidden rounded-[60px] flex flex-col transition-colors duration-1000 ease-out ${exitingToInsight ? "bg-black" : "bg-[#EEE1C4]"}`}
+        className={`ios-frame relative overflow-hidden rounded-[60px] flex flex-col transition-colors duration-1000 ease-out ${exitingToInsight ? "bg-black" : "bg-[#EEE1C4]"}`}
         style={{
           width: 402,
           maxWidth: "100%",

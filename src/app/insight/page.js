@@ -101,7 +101,7 @@ export default function InsightPage() {
         onAnimationEnd={handleExitAnimationEnd}
       >
       <main
-        className="relative overflow-hidden bg-black rounded-[60px]"
+        className="ios-frame relative overflow-hidden bg-black rounded-[60px]"
         style={{
           width: 402,
           maxWidth: "100%",
