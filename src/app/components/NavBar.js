@@ -120,10 +120,11 @@ export default function NavBar({ activePage = "ideas" }) {
         <div
           style={{
             position: "absolute",
-            top: 3,
-            left: 3,
+            top: "50%",
+            left: 4,
             width: 64,
             height: 64,
+            marginTop: -32,
             borderRadius: 24,
             background: "#FFF",
             transition: animate ? "transform 300ms cubic-bezier(0.34, 1.28, 0.64, 1)" : "none",
