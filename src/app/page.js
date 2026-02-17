@@ -728,11 +728,6 @@ export default function HomePage() {
               </span>
             ) : isFirstTimeLoading && firstLoadPhase === "cardsEnter" ? (
               <span className="block">{FIRST_LOAD_TYPED_MESSAGE}</span>
-            ) : !isFirstTimeLoading ? (
-              <>
-                Your day had <span className="font-bold">4 things</span>. Reflect
-                and get your daily insight <span className="align-text-top">✨</span>
-              </>
             ) : null}
           </p>
 
