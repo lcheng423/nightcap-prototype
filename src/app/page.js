@@ -5,25 +5,16 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import statusBarImage from "./assets/Status bar.png";
+import NavBar from "./components/NavBar";
 
 const REFLECTION_STATE_KEY = "reflectionState";
 const HAS_VIEWED_INSIGHT_KEY = "hasViewedInsight";
 const FIRST_LOAD_COMPLETE_KEY = "nightcap_hasCompletedFirstLoad";
 
 const WELCOME_TEXT = "Welcome, Courtney";
-const LOADING_STRINGS = [
-  "Tuning into your threads...",
-  "Learning what makes you, you...",
-  "We're still getting to know you...",
-  "Picking ideas for you...",
-  "Let's see what fits...",
-];
-const LOADING_STRING_INTERVAL_MS = 2500;
-const LOADING_CYCLE_DURATION_MS = 10000;
-const CARDS_FADEOUT_MS = 400;
 const CARD_ENTER_STAGGER_S = 0.0875;
 const FIRST_LOAD_TYPED_MESSAGE = "Here are some ideas for who you're becoming. Save one to start your day";
-const TYPEWRITER_MS = 22;
+const TYPEWRITER_MS = 11;
 
 const LONG_PRESS_MS = 400;
 const CELL_W = 189 + 8;
@@ -32,6 +23,17 @@ const CARD_W = 189;
 const CARD_H = 252;
 const SWAP_HOVER_W = 50;
 const SWAP_HOVER_H = 70;
+const EXPAND_MS = 300;
+const EXPAND_EASE = "cubic-bezier(0.25, 0.1, 0.25, 1)";
+const EXPAND_TRANSITION = ["top", "left", "width", "height", "border-radius", "padding", "transform"]
+  .map((p) => `${p} ${EXPAND_MS}ms ${EXPAND_EASE}`)
+  .join(", ");
+
+const backIcon = (
+  <svg width="10" height="17" viewBox="0 0 10 17" fill="none" xmlns="http://www.w3.org/2000/svg" className="block" aria-hidden>
+    <path d="M0 8.47656C0 8.23242 0.0878906 8.00781 0.273438 7.83203L8.01758 0.253906C8.18359 0.0878906 8.39844 0 8.65234 0C9.16016 0 9.55078 0.380859 9.55078 0.888672C9.55078 1.13281 9.44336 1.35742 9.28711 1.52344L2.17773 8.47656L9.28711 15.4297C9.44336 15.5957 9.55078 15.8105 9.55078 16.0645C9.55078 16.5723 9.16016 16.9531 8.65234 16.9531C8.39844 16.9531 8.18359 16.8652 8.01758 16.6895L0.273438 9.12109C0.0878906 8.93555 0 8.7207 0 8.47656Z" fill="#423530" />
+  </svg>
+);
 
 function TypewriterText({ text }) {
   return text.split("").map((char, i) =>
@@ -39,12 +41,13 @@ function TypewriterText({ text }) {
   );
 }
 
+
 export default function HomePage() {
   const [notifications] = useState(7);
   const [isLeaving, setIsLeaving] = useState(false);
   const [hasReflectionInProgress, setHasReflectionInProgress] = useState(false);
   const [hasViewedInsight, setHasViewedInsight] = useState(false);
-  const [order, setOrder] = useState([0, 1, 2, 3, 4, 5]);
+  const [order, setOrder] = useState([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
   const [longPressedCardIndex, setLongPressedCardIndex] = useState(null);
   const [draggingSlot, setDraggingSlot] = useState(null);
   const [heldCardId, setHeldCardId] = useState(null);
@@ -56,19 +59,24 @@ export default function HomePage() {
   const [arrivalFromSlot, setArrivalFromSlot] = useState(null);
   const [arrivalOffset, setArrivalOffset] = useState({ x: 0, y: 0 });
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [expandingCard, setExpandingCard] = useState(null);
   const [isFirstTimeLoading, setIsFirstTimeLoading] = useState(true);
   const [firstLoadPhase, setFirstLoadPhase] = useState("welcome");
   const [welcomeTypedLength, setWelcomeTypedLength] = useState(0);
-  const [loadingStringIndex, setLoadingStringIndex] = useState(0);
   const [instructionTypedLength, setInstructionTypedLength] = useState(0);
   const longPressTimerRef = useRef(null);
-  const loadingStartRef = useRef(null);
   const router = useRouter();
   const frameRef = useRef(null);
   const nextRouteRef = useRef("/reflection");
   const gridRef = useRef(null);
   const recentlySettledSlotsRef = useRef([]);
   const lastDragStateRef = useRef({ draggingSlot: null, arrivalSlot: null });
+  const cardDragActiveRef = useRef(false);
+  const tapStartRef = useRef(null);
+  const expandCardRef = useRef(null);
+  const expandNavTimerRef = useRef(null);
+  const pullStartRef = useRef(null);
+  const [pullOffset, setPullOffset] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -101,30 +109,8 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!isFirstTimeLoading || firstLoadPhase !== "welcome" || welcomeTypedLength < WELCOME_TEXT.length) return;
-    setFirstLoadPhase("loading");
+    setFirstLoadPhase("instruction");
   }, [isFirstTimeLoading, firstLoadPhase, welcomeTypedLength]);
-
-  /* Phase: loading – cycle strings + pulsing cards for 10s */
-  useEffect(() => {
-    if (!isFirstTimeLoading || firstLoadPhase !== "loading") return;
-    loadingStartRef.current = loadingStartRef.current ?? Date.now();
-    const id = setInterval(() => {
-      const elapsed = Date.now() - loadingStartRef.current;
-      if (elapsed >= LOADING_CYCLE_DURATION_MS) {
-        setFirstLoadPhase("fadeOut");
-        return;
-      }
-      setLoadingStringIndex((i) => (i + 1) % LOADING_STRINGS.length);
-    }, LOADING_STRING_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [isFirstTimeLoading, firstLoadPhase]);
-
-  /* Phase: fadeOut – remove pulsing cards (400ms), then start instruction */
-  useEffect(() => {
-    if (!isFirstTimeLoading || firstLoadPhase !== "fadeOut") return;
-    const id = setTimeout(() => setFirstLoadPhase("instruction"), CARDS_FADEOUT_MS);
-    return () => clearTimeout(id);
-  }, [isFirstTimeLoading, firstLoadPhase]);
 
   /* Phase: instruction – type out save instruction */
   useEffect(() => {
@@ -147,13 +133,205 @@ export default function HomePage() {
   useEffect(() => {
     if (!isFirstTimeLoading || firstLoadPhase !== "instruction" || instructionTypedLength < FIRST_LOAD_TYPED_MESSAGE.length) return;
     setFirstLoadPhase("cardsEnter");
+    try { sessionStorage.setItem(FIRST_LOAD_COMPLETE_KEY, "1"); } catch (_) { /* ignore */ }
   }, [isFirstTimeLoading, firstLoadPhase, instructionTypedLength]);
 
   useEffect(() => {
     return () => {
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      if (expandNavTimerRef.current) clearTimeout(expandNavTimerRef.current);
     };
   }, []);
+
+  /* Drag-to-scroll: touch the screen and drag to scroll like on iOS */
+  const scrollDragRef = useRef({ active: false, started: false, startY: 0, startScrollTop: 0, pointerId: null, velY: 0, lastY: 0, lastT: 0, raf: null });
+
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const sd = scrollDragRef.current;
+
+    const DRAG_THRESHOLD = 8;
+    const FRICTION = 0.95;
+    const MIN_VEL = 0.5;
+
+    const stopMomentum = () => { if (sd.raf) { cancelAnimationFrame(sd.raf); sd.raf = null; } };
+
+    const runMomentum = () => {
+      stopMomentum();
+      const step = () => {
+        sd.velY *= FRICTION;
+        if (Math.abs(sd.velY) < MIN_VEL) { sd.raf = null; return; }
+        el.scrollTop -= sd.velY;
+        if (el.scrollTop <= 0 || el.scrollTop >= el.scrollHeight - el.clientHeight) sd.velY *= 0.5;
+        sd.raf = requestAnimationFrame(step);
+      };
+      sd.raf = requestAnimationFrame(step);
+    };
+
+    const onDown = (e) => {
+      /* Skip buttons, links, interactive elements, and card drag-and-drop */
+      if (e.target.closest("button, a")) return;
+      if (cardDragActiveRef.current) return;
+      stopMomentum();
+      sd.active = true;
+      sd.started = false;
+      sd.startY = e.clientY;
+      sd.startScrollTop = el.scrollTop;
+      sd.lastY = e.clientY;
+      sd.lastT = Date.now();
+      sd.velY = 0;
+      sd.pointerId = e.pointerId;
+    };
+
+    const onMove = (e) => {
+      if (!sd.active) return;
+      /* Bail if card drag-and-drop activated while we were tracking */
+      if (cardDragActiveRef.current) { sd.active = false; sd.started = false; return; }
+      const dy = e.clientY - sd.startY;
+      if (!sd.started) {
+        if (Math.abs(dy) < DRAG_THRESHOLD) return;
+        sd.started = true;
+        /* Cancel any pending card long-press since this is a scroll */
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+        tapStartRef.current = null;
+        /* Capture pointer once we commit to scrolling */
+        try { el.setPointerCapture(sd.pointerId); } catch (_) {}
+      }
+      el.scrollTop = sd.startScrollTop - dy;
+      const now = Date.now();
+      const dt = now - sd.lastT;
+      if (dt > 0) {
+        sd.velY = (e.clientY - sd.lastY) / dt * 16;
+        sd.lastY = e.clientY;
+        sd.lastT = now;
+      }
+    };
+
+    const onUp = () => {
+      if (!sd.active) return;
+      const wasScrolling = sd.started;
+      sd.active = false;
+      sd.started = false;
+      if (sd.pointerId != null) {
+        try { el.releasePointerCapture(sd.pointerId); } catch (_) {}
+        sd.pointerId = null;
+      }
+      if (wasScrolling && Math.abs(sd.velY) > MIN_VEL) runMomentum();
+    };
+
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
+
+    return () => {
+      stopMomentum();
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
+    };
+  }, []);
+
+  /* Trigger card expansion after first paint */
+  useEffect(() => {
+    if (!expandingCard || expandingCard.phase !== "mounting") return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setExpandingCard((prev) => prev ? { ...prev, phase: "expanding" } : null);
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [expandingCard]);
+
+  /* Two-frame close from pull: parks at pull position first, then animates to origin */
+  useEffect(() => {
+    if (!expandingCard || expandingCard.phase !== "closing-start") return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setExpandingCard((prev) => prev ? { ...prev, phase: "closing" } : null);
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [expandingCard]);
+
+  /* Handle card overlay transition end (expand complete or close complete) */
+  const handleExpandTransitionEnd = useCallback(
+    (e) => {
+      if (e.target !== expandCardRef.current) return;
+      if (!expandingCard) return;
+      if (expandingCard.phase === "expanding") {
+        if (expandNavTimerRef.current) clearTimeout(expandNavTimerRef.current);
+        setExpandingCard((prev) => prev ? { ...prev, phase: "open" } : null);
+      } else if (expandingCard.phase === "closing") {
+        if (expandNavTimerRef.current) clearTimeout(expandNavTimerRef.current);
+        setExpandingCard(null);
+      }
+    },
+    [expandingCard]
+  );
+
+  /* Back from expanded card view — pullXY is {x,y} where the user released (null if back button) */
+  const dismissCard = useCallback((pullXY = null) => {
+    if (!expandingCard || expandingCard.phase === "closing" || expandingCard.phase === "closing-start") return;
+    setPullOffset({ x: 0, y: 0 });
+    pullStartRef.current = null;
+    if (pullXY) {
+      /* Two-frame close: first frame parks at pull position with transition on,
+         second frame moves to origin so the browser actually animates. */
+      const dist = Math.sqrt(pullXY.x * pullXY.x + pullXY.y * pullXY.y);
+      const pullScale = Math.max(0.85, 1 - dist / 1200);
+      setExpandingCard((prev) => prev ? { ...prev, phase: "closing-start", pullDismissXY: pullXY, pullDismissScale: pullScale } : null);
+    } else {
+      setExpandingCard((prev) => prev ? { ...prev, phase: "closing" } : null);
+    }
+    expandNavTimerRef.current = setTimeout(() => setExpandingCard(null), EXPAND_MS + 100);
+  }, [expandingCard]);
+
+  const handleCardBack = useCallback(
+    (e) => {
+      e.preventDefault();
+      dismissCard();
+    },
+    [dismissCard]
+  );
+
+  /* Drag-to-dismiss on the expanded card (free movement in any direction) */
+  const DISMISS_THRESHOLD = 100;
+
+  const handlePullDown = useCallback((e) => {
+    if (!expandingCard || expandingCard.phase !== "open") return;
+    pullStartRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }, [expandingCard]);
+
+  const handlePullMove = useCallback((e) => {
+    if (!pullStartRef.current) return;
+    const dx = e.clientX - pullStartRef.current.x;
+    const dy = e.clientY - pullStartRef.current.y;
+    setPullOffset({ x: dx, y: dy });
+  }, []);
+
+  const handlePullUp = useCallback((e) => {
+    if (!pullStartRef.current) return;
+    e.currentTarget.releasePointerCapture?.(pullStartRef.current.pointerId);
+    const dx = e.clientX - pullStartRef.current.x;
+    const dy = e.clientY - pullStartRef.current.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    pullStartRef.current = null;
+    if (dist > DISMISS_THRESHOLD) {
+      dismissCard({ x: dx, y: dy });
+    } else {
+      setPullOffset({ x: 0, y: 0 }); // snap back
+    }
+  }, [dismissCard]);
+
+  const TOTAL_CARDS = order.length;
+  const TOTAL_ROWS = Math.ceil(TOTAL_CARDS / 2);
 
   const getSlotAtClient = useCallback((clientX, clientY) => {
     const el = gridRef.current;
@@ -163,10 +341,10 @@ export default function HomePage() {
     const relY = clientY - rect.top;
     const col = Math.floor(relX / CELL_W);
     const row = Math.floor(relY / CELL_H);
-    if (col < 0 || col > 1 || row < 0 || row > 2) return null;
+    if (col < 0 || col > 1 || row < 0 || row >= TOTAL_ROWS) return null;
     const slot = row * 2 + col;
-    return slot <= 5 ? slot : null;
-  }, []);
+    return slot < TOTAL_CARDS ? slot : null;
+  }, [TOTAL_CARDS, TOTAL_ROWS]);
 
   const getSlotAtClientCenter = useCallback((clientX, clientY) => {
     const el = gridRef.current;
@@ -176,16 +354,16 @@ export default function HomePage() {
     const relY = clientY - rect.top;
     const col = Math.floor(relX / CELL_W);
     const row = Math.floor(relY / CELL_H);
-    if (col < 0 || col > 1 || row < 0 || row > 2) return null;
+    if (col < 0 || col > 1 || row < 0 || row >= TOTAL_ROWS) return null;
     const slot = row * 2 + col;
-    if (slot > 5) return null;
+    if (slot >= TOTAL_CARDS) return null;
     const centerX = col * CELL_W + CARD_W / 2;
     const centerY = row * CELL_H + CARD_H / 2;
     const halfW = SWAP_HOVER_W / 2;
     const halfH = SWAP_HOVER_H / 2;
     if (Math.abs(relX - centerX) > halfW || Math.abs(relY - centerY) > halfH) return null;
     return slot;
-  }, []);
+  }, [TOTAL_CARDS, TOTAL_ROWS]);
 
   useEffect(() => {
     if (draggingSlot === null || hoverSlot === null || hoverSlot === draggingSlot) return;
@@ -209,13 +387,16 @@ export default function HomePage() {
 
   const handleCardPointerDown = useCallback((e, slotIndex) => {
     if (longPressTimerRef.current) return;
+    if (expandingCard) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
+    tapStartRef.current = { x: e.clientX, y: e.clientY, slot: slotIndex };
     longPressTimerRef.current = setTimeout(() => {
       longPressTimerRef.current = null;
+      cardDragActiveRef.current = true;
       setLongPressedCardIndex(slotIndex);
       setDragPosition({ x: e.clientX, y: e.clientY });
     }, LONG_PRESS_MS);
-  }, []);
+  }, [expandingCard]);
 
   const handleCardPointerMove = useCallback(
     (e) => {
@@ -258,10 +439,36 @@ export default function HomePage() {
   const handleCardPointerUp = useCallback(
     (e) => {
       e.currentTarget.releasePointerCapture?.(e.pointerId);
+      // Detect tap: timer still pending (no long press fired), minimal pointer movement
+      if (longPressTimerRef.current && tapStartRef.current) {
+        const dx = Math.abs(e.clientX - tapStartRef.current.x);
+        const dy = Math.abs(e.clientY - tapStartRef.current.y);
+        if (dx < 10 && dy < 10) {
+          const mainEl = e.currentTarget.closest("main");
+          const cardId = order[tapStartRef.current.slot];
+          if (mainEl) {
+            const cr = e.currentTarget.getBoundingClientRect();
+            const mr = mainEl.getBoundingClientRect();
+            const rect = {
+              top: Math.round(cr.top - mr.top),
+              left: Math.round(cr.left - mr.left),
+              width: Math.round(cr.width),
+              height: Math.round(cr.height),
+            };
+            setExpandingCard({ cardId, rect, phase: "mounting" });
+            /* Fallback: force open if transitionend doesn't fire */
+            expandNavTimerRef.current = setTimeout(() => {
+              setExpandingCard((prev) => prev && prev.phase === "expanding" ? { ...prev, phase: "open" } : prev);
+            }, EXPAND_MS + 100);
+          }
+        }
+      }
+      tapStartRef.current = null;
       if (longPressTimerRef.current) {
         clearTimeout(longPressTimerRef.current);
         longPressTimerRef.current = null;
       }
+      cardDragActiveRef.current = false;
       const { draggingSlot: ds, arrivalSlot: as } = lastDragStateRef.current;
       recentlySettledSlotsRef.current = [ds, as].filter((s) => s != null);
       setTimeout(() => {
@@ -277,7 +484,7 @@ export default function HomePage() {
       setUnderCardScale(1);
       setUnderCardRotate(0);
     },
-    []
+    [router, order]
   );
 
   const handleCardPointerLeave = useCallback((e) => {
@@ -321,7 +528,7 @@ export default function HomePage() {
     <div className="min-h-screen flex items-center justify-center bg-[#E3DED4]">
       {/* Main screen: 402×874 frame, 60px radius – status bar and background never fade */}
       <main
-        className="relative overflow-hidden bg-[#EEE1C4] rounded-[60px] flex flex-col"
+        className="ios-frame relative overflow-hidden bg-[#EEE1C4] rounded-[60px] flex flex-col"
         style={{
           width: 402,
           maxWidth: "100%",
@@ -347,8 +554,9 @@ export default function HomePage() {
         {/* Content below status bar: fades out when leaving, fades in when returning */}
         <div
           ref={frameRef}
-          className={`flex-1 flex flex-col min-h-0 ${isLeaving ? "fade-out-quick" : "fade-in-quick"}`}
+          className={`flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide ${isLeaving ? "fade-out-quick" : "fade-in-quick"}`}
           onAnimationEnd={handleFadeOutEnd}
+          style={{ WebkitOverflowScrolling: "touch" }}
         >
           {/* Top bar: 24px horizontal padding, 32pt top, 20pt bottom */}
           <nav
@@ -514,14 +722,7 @@ export default function HomePage() {
               overflow: isFirstTimeLoading ? "hidden" : undefined,
             }}
           >
-            {isFirstTimeLoading && firstLoadPhase === "loading" ? (
-              <span
-                key={loadingStringIndex}
-                className="loading-text-enter block"
-              >
-                {LOADING_STRINGS[loadingStringIndex]}
-              </span>
-            ) : isFirstTimeLoading && firstLoadPhase === "instruction" ? (
+            {isFirstTimeLoading && firstLoadPhase === "instruction" ? (
               <span className="block">
                 <TypewriterText text={FIRST_LOAD_TYPED_MESSAGE.slice(0, instructionTypedLength)} />
               </span>
@@ -541,8 +742,8 @@ export default function HomePage() {
               marginTop: (!isFirstTimeLoading || firstLoadPhase === "cardsEnter") ? 32 : 16,
               marginLeft: -16,
               marginRight: -16,
-              transition: firstLoadPhase === "fadeOut" ? "opacity 0.4s ease-out" : "none",
-              opacity: isFirstTimeLoading && (firstLoadPhase === "welcome" || firstLoadPhase === "fadeOut" || firstLoadPhase === "instruction") ? 0 : 1,
+              marginBottom: 36,
+              opacity: isFirstTimeLoading && (firstLoadPhase === "welcome" || firstLoadPhase === "instruction") ? 0 : 1,
             }}
           >
               <div
@@ -551,17 +752,17 @@ export default function HomePage() {
                   display: "grid",
                   rowGap: 8,
                   columnGap: 8,
-                  gridTemplateRows: "repeat(3, 252px)",
+                  gridTemplateRows: `repeat(${TOTAL_ROWS}, 252px)`,
                   gridTemplateColumns: "189px 189px",
                 }}
               >
               {isFirstTimeLoading && (firstLoadPhase === "welcome" || firstLoadPhase === "instruction") ? (
                 /* Placeholder: no cards during welcome or instruction so cards mount fresh for loading (pulse) and cardsEnter (stagger) */
-                [0, 1, 2, 3, 4, 5].map((slotIndex) => (
+                Array.from({ length: TOTAL_CARDS }, (_, i) => i).map((slotIndex) => (
                   <div key={slotIndex} style={{ width: 189, height: 252 }} aria-hidden />
                 ))
               ) : (
-              [0, 1, 2, 3, 4, 5].map((slotIndex) => {
+              Array.from({ length: TOTAL_CARDS }, (_, i) => i).map((slotIndex) => {
                 lastDragStateRef.current = { draggingSlot, arrivalSlot };
                 const isRecentlySettled = recentlySettledSlotsRef.current.includes(slotIndex);
                 const cardStyle = {
@@ -582,7 +783,8 @@ export default function HomePage() {
                 const isHoverTarget = hoverSlot !== null && hoverSlot !== draggingSlot && slotIndex === hoverSlot;
                 const isPlaceholder = draggingSlot !== null && order[slotIndex] === heldCardId;
                 const isArrivingSlot = slotIndex === arrivalSlot;
-                const showPulse = isFirstTimeLoading && firstLoadPhase === "loading";
+                /* Hide the original card when it's being expanded/dragged as overlay */
+                const isExpandingThis = expandingCard && expandingCard.cardId === order[slotIndex];
 
                 return (
                   <div
@@ -597,7 +799,7 @@ export default function HomePage() {
                   >
                     {isArrivingSlot ? (
                       <div
-                        className={`home-card-fly-snap ${showPulse ? "home-card-pulse" : ""}`}
+                        className="home-card-fly-snap"
                         style={{
                           ...cardStyle,
                           transform: `translate(${arrivalOffset.x}px, ${arrivalOffset.y}px)`,
@@ -605,18 +807,18 @@ export default function HomePage() {
                       />
                     ) : isHoverTarget ? (
                       <div
-                        className={`home-card-fly-snap ${showPulse ? "home-card-pulse" : ""} ${firstLoadPhase === "cardsEnter" ? "home-first-enter" : ""}`}
+                        className={`home-card-fly-snap ${firstLoadPhase === "cardsEnter" ? "home-first-enter" : ""}`}
                         style={{
                           ...cardStyle,
                           transform: `scale(${underCardScale}) rotate(${underCardRotate}deg) translate(${underCardOffset.x}px, ${underCardOffset.y}px)`,
                         }}
                       />
                     ) : isPlaceholder ? (
-                      <div className={showPulse ? "home-card-pulse" : ""} style={{ ...cardStyle, opacity: 0.35 }} aria-hidden />
+                      <div style={{ ...cardStyle, opacity: 0 }} aria-hidden />
                     ) : (
                       <div
-                        className={`cursor-pointer hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 ease-out ${showPulse ? "home-card-pulse" : ""} ${firstLoadPhase === "cardsEnter" ? "home-first-enter" : !isRecentlySettled ? "home-first-enter" : ""}`}
-                        style={cardStyle}
+                        className={`cursor-pointer hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 ease-out ${firstLoadPhase === "cardsEnter" ? "home-first-enter" : ""}`}
+                        style={{ ...cardStyle, ...(isExpandingThis ? { opacity: 0 } : {}) }}
                       />
                     )}
                   </div>
@@ -649,9 +851,147 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Bottom padding so content doesn't touch edge */}
-          <div style={{ height: 32 }} />
+          {/* Bottom padding so content clears the nav bar */}
+          <div style={{ height: 130 }} />
         </div>
+
+        {/* Bottom nav bar */}
+        <NavBar activePage="ideas" />
+
+        {/* Blanket: fades in on expand, fades out on close — reveals home content */}
+        {expandingCard && (() => {
+          const pullDist = Math.sqrt(pullOffset.x * pullOffset.x + pullOffset.y * pullOffset.y);
+          const pulling = pullDist > 0 && expandingCard.phase === "open";
+          const dismissXY = expandingCard.pullDismissXY;
+          const dismissDist = dismissXY ? Math.sqrt(dismissXY.x * dismissXY.x + dismissXY.y * dismissXY.y) : 0;
+          const closingFromPull = (expandingCard.phase === "closing" || expandingCard.phase === "closing-start") && dismissDist > 0;
+          const pullDismissOpacity = Math.max(0, 1 - dismissDist / 300);
+          const blanketOpacity = pulling ? Math.max(0, 1 - pullDist / 300) : undefined;
+
+          /* When closing from a pull, skip CSS keyframe (it starts at opacity:1 causing a flash)
+             and use inline opacity + transition instead */
+          let blanketClass = "absolute inset-0 z-20";
+          let blanketStyle = { backgroundColor: "#EEE1C4" };
+
+          if (closingFromPull) {
+            if (expandingCard.phase === "closing-start") {
+              blanketStyle.opacity = pullDismissOpacity;
+            } else {
+              /* closing phase: transition opacity to 0 from wherever it was */
+              blanketStyle.opacity = 0;
+              blanketStyle.transition = `opacity ${EXPAND_MS}ms ${EXPAND_EASE}`;
+            }
+          } else if (pulling) {
+            blanketStyle.opacity = blanketOpacity;
+          } else if (expandingCard.phase === "closing") {
+            blanketClass += " card-blanket-out";
+          } else {
+            blanketClass += " card-blanket-in";
+          }
+
+          return <div className={blanketClass} style={blanketStyle} />;
+        })()}
+
+        {/* Back button – appears once card is expanding, fades out on close or pull */}
+        {expandingCard && expandingCard.phase !== "mounting" && (() => {
+          const pullDist = Math.sqrt(pullOffset.x * pullOffset.x + pullOffset.y * pullOffset.y);
+          const pulling = pullDist > 0 && expandingCard.phase === "open";
+          const dismissXY = expandingCard.pullDismissXY;
+          const dismissDist = dismissXY ? Math.sqrt(dismissXY.x * dismissXY.x + dismissXY.y * dismissXY.y) : 0;
+          const closingFromPull = (expandingCard.phase === "closing" || expandingCard.phase === "closing-start") && dismissDist > 0;
+          const pullDismissOpacity = Math.max(0, 1 - dismissDist / 150);
+
+          let backClass = "absolute z-40";
+          let backStyle = { top: 54 + 24, left: 24 };
+
+          if (closingFromPull) {
+            if (expandingCard.phase === "closing-start") {
+              backStyle.opacity = pullDismissOpacity;
+              backStyle.transition = "none";
+            } else {
+              backStyle.opacity = 0;
+              backStyle.transition = `opacity ${EXPAND_MS}ms ${EXPAND_EASE}`;
+            }
+          } else if (pulling) {
+            backStyle.opacity = Math.max(0, 1 - pullDist / 150);
+            backStyle.transition = "none";
+          } else if (expandingCard.phase === "closing") {
+            backClass += " card-back-fade-out";
+          } else {
+            backClass += " card-back-fade-in";
+          }
+
+          return (
+          <div className={backClass} style={backStyle}>
+
+            <a
+              href="/"
+              onClick={handleCardBack}
+              className="flex justify-center items-center transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
+              style={{
+                width: 48,
+                height: 48,
+                padding: "11.5px 13.8px",
+                aspectRatio: "1/1",
+                background: "rgba(255, 255, 255, 0.80)",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+                borderRadius: 20,
+              }}
+              aria-label="Back"
+            >
+              {backIcon}
+            </a>
+          </div>
+          );
+        })()}
+
+        {/* Card overlay: transitions between small card and expanded card */}
+        {expandingCard && (() => {
+          const atFinal = expandingCard.phase === "expanding" || expandingCard.phase === "open";
+          const pullDist = Math.sqrt(pullOffset.x * pullOffset.x + pullOffset.y * pullOffset.y);
+          const pulling = pullDist > 0 && expandingCard.phase === "open";
+          const pullScale = pulling ? Math.max(0.85, 1 - pullDist / 1200) : 1;
+          /* Subtle rotation based on horizontal drag — feels more physical */
+          const pullRotate = pulling ? pullOffset.x * 0.03 : 0;
+          const isClosingStart = expandingCard.phase === "closing-start";
+          const dismissXY = expandingCard.pullDismissXY;
+          const dismissRotate = dismissXY ? dismissXY.x * 0.03 : 0;
+          return (
+            <div
+              ref={expandCardRef}
+              onTransitionEnd={handleExpandTransitionEnd}
+              onPointerDown={expandingCard.phase === "open" ? handlePullDown : undefined}
+              onPointerMove={handlePullMove}
+              onPointerUp={handlePullUp}
+              onPointerCancel={handlePullUp}
+              style={{
+                position: "absolute",
+                zIndex: 30,
+                top: atFinal || isClosingStart ? 149 : expandingCard.rect.top,
+                left: atFinal || isClosingStart ? 8 : expandingCard.rect.left,
+                width: atFinal || isClosingStart ? 386 : expandingCard.rect.width,
+                height: atFinal || isClosingStart ? 514.667 : expandingCard.rect.height,
+                borderRadius: atFinal || isClosingStart ? 40 : 28,
+                padding: atFinal || isClosingStart ? 36 : 24,
+                transition: (pulling || expandingCard.phase === "mounting") ? "none" : EXPAND_TRANSITION,
+                transform: pulling
+                  ? `translate(${pullOffset.x}px, ${pullOffset.y}px) scale(${pullScale}) rotate(${pullRotate}deg)`
+                  : isClosingStart
+                    ? `translate(${dismissXY?.x || 0}px, ${dismissXY?.y || 0}px) scale(${expandingCard.pullDismissScale || 1}) rotate(${dismissRotate}deg)`
+                    : "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 20,
+                boxSizing: "border-box",
+                border: "1px solid rgba(0, 0, 0, 0.10)",
+                backgroundColor: "#F7F0E1",
+                boxShadow: "0 8.124px 40.618px 0 rgba(0, 0, 0, 0.05)",
+                touchAction: expandingCard.phase === "open" ? "none" : undefined,
+              }}
+            />
+          );
+        })()}
       </main>
     </div>
   );

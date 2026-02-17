@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import statusBarImage from "../assets/Status bar.png";
+import NavBar from "../components/NavBar";
 
 const PROMPT_TEXT = "So, how'd your day go?";
 const FOLLOW_UP_TEXT = "Nice work on the stretch and the shift!\n\nWhat made you want to bring up the trip with Michael today?";
@@ -286,7 +287,7 @@ export default function ReflectionPage() {
       {/* Phone frame – fixed; only content inside slides */}
       <main
         ref={mainRef}
-        className={`relative overflow-hidden rounded-[60px] flex flex-col transition-colors duration-1000 ease-out ${exitingToInsight ? "bg-black" : "bg-[#EEE1C4]"}`}
+        className={`ios-frame relative overflow-hidden rounded-[60px] flex flex-col transition-colors duration-1000 ease-out ${exitingToInsight ? "bg-black" : "bg-[#EEE1C4]"}`}
         style={{
           width: 402,
           maxWidth: "100%",
@@ -750,6 +751,9 @@ export default function ReflectionPage() {
           </div>
         </div>
         </div>
+        {/* Bottom nav bar */}
+        <NavBar activePage="ideas" />
+
         {/* "Come together" overlay: slides out with screen when back is tapped; hidden when transcription is shown */}
         {together && togetherPositions && !showTranscription && (
           <div

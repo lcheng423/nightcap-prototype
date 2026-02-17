@@ -1,5 +1,6 @@
 import localFont from "next/font/local";
 import "./globals.css";
+import IosCursorProvider from "./IosCursorProvider";
 
 const dinRounded = localFont({
   src: "./font/DIN2014RoundedVF-Regular.ttf",
@@ -16,7 +17,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${dinRounded.variable} ${dinRounded.className} antialiased`}>
-        {children}
+        <IosCursorProvider>
+          {children}
+        </IosCursorProvider>
       </body>
     </html>
   );

@@ -25,6 +25,55 @@ body {
   font-family: var(--font-din-rounded), sans-serif;
 }
 
+/* iOS-like touch cursor inside the phone frame */
+.ios-frame {
+  cursor: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ios-frame * {
+  cursor: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ios-frame a, .ios-frame button {
+  cursor: none !important;
+}
+
+.ios-cursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  transform: translate(-50%, -50%);
+  transition: transform 0.12s cubic-bezier(0.25, 0.1, 0.25, 1),
+              opacity 0.15s ease-out,
+              width 0.12s cubic-bezier(0.25, 0.1, 0.25, 1),
+              height 0.12s cubic-bezier(0.25, 0.1, 0.25, 1);
+  opacity: 0;
+}
+.ios-cursor.visible {
+  opacity: 1;
+}
+.ios-cursor.pressing {
+  width: 22px;
+  height: 22px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+/* Hide scrollbar but keep scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* iOS-style slide transitions (10% slower: 0.35s → ~0.385s) */
 @keyframes slide-in-from-right {
   from {
@@ -121,35 +170,6 @@ body {
   animation: card-enter 0.3s ease-out forwards;
 }
 
-/* First-time loading subtitle: slide in from bottom, then gentle pulse */
-@keyframes loading-text-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes loading-text-pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.72;
-  }
-}
-
-.loading-text-enter {
-  opacity: 0;
-  transform: translateY(14px);
-  animation:
-    loading-text-slide-in 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards,
-    loading-text-pulse 2.2s ease-in-out 0.4s infinite;
-}
-
 /* Home: "Picked for you earlier today" + 4 boxes enter one at a time (first load only) */
 @keyframes home-first-enter {
   from {
@@ -165,16 +185,6 @@ body {
 .home-first-enter {
   opacity: 0;
   animation: home-first-enter 0.35s ease-out var(--card-enter-delay, 0s) forwards;
-}
-
-/* Home: content cards pulse (5% to 50% opacity, in sync) */
-@keyframes home-card-pulse {
-  0%, 100% { opacity: 0.05; }
-  50% { opacity: 0.5; }
-}
-
-.home-card-pulse {
-  animation: home-card-pulse 2.2s ease-in-out infinite;
 }
 
 /* Home: held card slow wiggle */
@@ -383,6 +393,54 @@ body {
 .insight-btn-enter .insight-btn-breathe {
   animation: insight-btn-breathe 2.5s ease-in-out infinite;
 }
+
+/* Card overlay blanket: covers home content while card is open */
+.card-blanket-in {
+  opacity: 0;
+  animation: card-back-fade-in 0.3s ease-out forwards;
+}
+
+@keyframes card-blanket-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.card-blanket-out {
+  animation: card-blanket-out 0.3s ease-out forwards;
+}
+
+/* Card detail page: back button fade in */
+@keyframes card-back-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.card-back-fade-in {
+  opacity: 0;
+  animation: card-back-fade-in 0.3s ease-out forwards;
+}
+
+@keyframes card-back-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.card-back-fade-out {
+  animation: card-back-fade-out 0.3s ease-out forwards;
+}
+
 
 /* Mic button: rotating single-color glow, speaking-style pulse when pressed */
 .mic-glare {
