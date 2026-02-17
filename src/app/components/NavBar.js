@@ -120,8 +120,8 @@ export default function NavBar({ activePage = "ideas" }) {
         <div
           style={{
             position: "absolute",
-            top: 4,
-            left: 4,
+            top: 3,
+            left: 3,
             width: 64,
             height: 64,
             borderRadius: 24,
