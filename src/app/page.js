@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import statusBarImage from "./assets/Status bar.png";
+import NavBar from "./components/NavBar";
 
 const REFLECTION_STATE_KEY = "reflectionState";
 const HAS_VIEWED_INSIGHT_KEY = "hasViewedInsight";
@@ -850,9 +851,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Bottom padding so content doesn't touch edge */}
-          <div style={{ height: 32 }} />
+          {/* Bottom padding so content clears the nav bar */}
+          <div style={{ height: 130 }} />
         </div>
+
+        {/* Bottom nav bar */}
+        <NavBar activePage="ideas" />
 
         {/* Blanket: fades in on expand, fades out on close — reveals home content */}
         {expandingCard && (() => {

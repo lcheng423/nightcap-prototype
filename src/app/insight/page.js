@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import statusBarWhite from "../assets/Status bar white.png";
 import courtneysCat from "../assets/courtneys-cat.jpeg";
+import NavBar from "../components/NavBar";
 
 function getDateLines() {
   const d = new Date();
@@ -351,6 +352,9 @@ export default function InsightPage() {
             </button>
           </div>
         </div>
+
+        {/* Bottom nav bar */}
+        <NavBar activePage="today" />
 
         {/* Status bar on top; visible from start; background is black until cat fades in */}
         <div

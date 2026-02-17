@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import statusBarImage from "../../assets/Status bar.png";
+import NavBar from "../../components/NavBar";
 
 const STATUS_BAR_H = 54;
 const FINAL_TOP = 149 - STATUS_BAR_H; // 95px from content-area top
@@ -157,6 +158,9 @@ export default function CardPage() {
             />
           </div>
         </div>
+
+        {/* Bottom nav bar */}
+        <NavBar activePage="ideas" />
       </main>
     </div>
   );
