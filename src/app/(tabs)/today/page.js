@@ -119,6 +119,7 @@ export default function TodayPage() {
 
   const handleScrollDragPointerDown = (e) => {
     if (e.target.closest("button")) return;
+    if (e.target.closest("[data-carousel-swipe]")) return;
     const el = scrollRef.current;
     if (!el) return;
     stopScrollMomentum();
