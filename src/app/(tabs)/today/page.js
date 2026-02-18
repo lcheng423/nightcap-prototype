@@ -69,6 +69,9 @@ export default function TodayPage() {
     deltaY: 0,
     lockedAxis: null,
     hasChangedDay: false,
+    lastClientY: 0,
+    velY: 0,
+    lastT: 0,
   });
 
   const indicatorBg = week[activeIndex]?.isToday ? "#DA5F3D" : "#423530";
@@ -192,7 +195,11 @@ export default function TodayPage() {
       deltaY: 0,
       lockedAxis: null,
       hasChangedDay: false,
+      lastClientY: e.clientY,
+      velY: 0,
+      lastT: Date.now(),
     };
+    stopScrollMomentum();
     setDragOffset(0);
     setIsDragging(false);
   };
@@ -212,13 +219,24 @@ export default function TodayPage() {
     }
 
     if (swipe.lockedAxis === "x") {
-      // Horizontal drag should control day paging; keep vertical scroll untouched otherwise.
       e.preventDefault();
       setIsDragging(true);
       const atStart = activeIndex === 0 && swipe.deltaX > 0;
       const atEnd = activeIndex === DAY_COUNT - 1 && swipe.deltaX < 0;
       const resistedDelta = atStart || atEnd ? swipe.deltaX * 0.35 : swipe.deltaX;
       setDragOffset(resistedDelta);
+    } else if (swipe.lockedAxis === "y") {
+      const el = scrollRef.current;
+      if (el) {
+        el.scrollTop -= e.clientY - swipe.lastClientY;
+      }
+      const now = Date.now();
+      const dt = now - swipe.lastT;
+      if (dt > 0) {
+        swipe.velY = ((e.clientY - swipe.lastClientY) / dt) * 16;
+      }
+      swipe.lastClientY = e.clientY;
+      swipe.lastT = now;
     }
   };
 
@@ -226,6 +244,11 @@ export default function TodayPage() {
     const swipe = swipeRef.current;
     if (!swipe.active || swipe.pointerId !== e.pointerId) return;
     e.currentTarget.releasePointerCapture?.(e.pointerId);
+
+    if (swipe.lockedAxis === "y" && Math.abs(swipe.velY) > MOMENTUM_MIN_VELOCITY) {
+      scrollDragRef.current.velY = swipe.velY;
+      startScrollMomentum();
+    }
 
     const absX = Math.abs(swipe.deltaX);
     const absY = Math.abs(swipe.deltaY);
@@ -257,6 +280,9 @@ export default function TodayPage() {
       deltaY: 0,
       lockedAxis: null,
       hasChangedDay: false,
+      lastClientY: 0,
+      velY: 0,
+      lastT: 0,
     };
   };
 
@@ -421,7 +447,7 @@ export default function TodayPage() {
             marginRight: -24,
             overflow: "hidden",
             paddingTop: 2,
-            touchAction: "pan-y",
+            touchAction: "none",
           }}
           onPointerDown={handleCarouselPointerDown}
           onPointerMove={handleCarouselPointerMove}
