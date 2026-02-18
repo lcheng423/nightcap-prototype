@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const REFLECTION_STATE_KEY = "reflectionState";
 const HAS_VIEWED_INSIGHT_KEY = "hasViewedInsight";
@@ -64,8 +65,6 @@ export default function HomePage() {
   const frameRef = useRef(null);
   const nextRouteRef = useRef("/reflection");
   const gridRef = useRef(null);
-  const recentlySettledSlotsRef = useRef([]);
-  const lastDragStateRef = useRef({ draggingSlot: null, arrivalSlot: null });
   const cardDragActiveRef = useRef(false);
   const tapStartRef = useRef(null);
   const expandCardRef = useRef(null);
@@ -462,11 +461,6 @@ export default function HomePage() {
         longPressTimerRef.current = null;
       }
       cardDragActiveRef.current = false;
-      const { draggingSlot: ds, arrivalSlot: as } = lastDragStateRef.current;
-      recentlySettledSlotsRef.current = [ds, as].filter((s) => s != null);
-      setTimeout(() => {
-        recentlySettledSlotsRef.current = [];
-      }, 500);
       setDraggingSlot(null);
       setHeldCardId(null);
       setLongPressedCardIndex(null);
@@ -477,7 +471,7 @@ export default function HomePage() {
       setUnderCardScale(1);
       setUnderCardRotate(0);
     },
-    [router, order]
+    [order]
   );
 
   const handleCardPointerLeave = useCallback((e) => {
@@ -607,8 +601,6 @@ export default function HomePage() {
                 ))
               ) : (
               Array.from({ length: TOTAL_CARDS }, (_, i) => i).map((slotIndex) => {
-                lastDragStateRef.current = { draggingSlot, arrivalSlot };
-                const isRecentlySettled = recentlySettledSlotsRef.current.includes(slotIndex);
                 const cardStyle = {
                   display: "flex",
                   padding: 24,
@@ -761,7 +753,7 @@ export default function HomePage() {
           return (
           <div className={backClass} style={backStyle}>
 
-            <a
+            <Link
               href="/"
               onClick={handleCardBack}
               className="flex justify-center items-center transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
@@ -777,7 +769,7 @@ export default function HomePage() {
               aria-label="Back"
             >
               {backIcon}
-            </a>
+            </Link>
           </div>
           );
         })()}

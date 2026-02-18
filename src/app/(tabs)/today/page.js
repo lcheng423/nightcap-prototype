@@ -403,7 +403,7 @@ export default function TodayPage() {
           <div
             aria-hidden
             style={{
-              height: 14,
+              height: 7,
               marginTop: -1,
               background: "linear-gradient(180deg, #EEE1C4 0%, rgba(238, 225, 196, 0) 70%)",
             }}
@@ -415,11 +415,11 @@ export default function TodayPage() {
           ref={carouselRef}
           data-carousel-swipe="true"
           style={{
-            marginTop: 4,
+            marginTop: 0,
             marginLeft: -24,
             marginRight: -24,
             overflow: "hidden",
-            paddingTop: 8,
+            paddingTop: 2,
             touchAction: "pan-y",
           }}
           onPointerDown={handleCarouselPointerDown}

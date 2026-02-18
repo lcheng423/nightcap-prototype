@@ -1,12 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import avatarImage from "../assets/courtneys-cat.jpeg";
-
-const NAV_PREV_KEY = "nav_active_page";
 
 function pathToPage(pathname) {
   if (pathname === "/today") return "today";
@@ -74,46 +71,6 @@ export default function NavBar({ activePage: activePageProp }) {
   const activePage = activePageProp ?? pathToPage(pathname);
   const targetOffset = INDICATOR_OFFSETS[activePage] ?? 0;
 
-  const needsMountAnimation = useRef(false);
-  const [offset, setOffset] = useState(() => {
-    if (typeof window === "undefined") return targetOffset;
-    try {
-      const prev = sessionStorage.getItem(NAV_PREV_KEY);
-      if (prev && prev !== activePage && INDICATOR_OFFSETS[prev] !== undefined) {
-        needsMountAnimation.current = true;
-        return INDICATOR_OFFSETS[prev];
-      }
-    } catch (_) {}
-    return targetOffset;
-  });
-  const [animate, setAnimate] = useState(false);
-  const currentPageRef = useRef(activePage);
-
-  // Mount animation (remount case — e.g. returning from /reflection)
-  useEffect(() => {
-    if (needsMountAnimation.current) {
-      needsMountAnimation.current = false;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setAnimate(true);
-          setOffset(targetOffset);
-        });
-      });
-    }
-    try { sessionStorage.setItem(NAV_PREV_KEY, activePage); } catch (_) {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Page change while mounted (persistent layout case)
-  useEffect(() => {
-    if (currentPageRef.current !== activePage) {
-      setAnimate(true);
-      setOffset(targetOffset);
-      currentPageRef.current = activePage;
-      try { sessionStorage.setItem(NAV_PREV_KEY, activePage); } catch (_) {}
-    }
-  }, [activePage, targetOffset]);
-
   return (
     <nav
       style={{
@@ -156,8 +113,8 @@ export default function NavBar({ activePage: activePageProp }) {
             marginTop: -32,
             borderRadius: 24,
             background: "#FFF",
-            transition: animate ? "transform 300ms cubic-bezier(0.34, 1.28, 0.64, 1)" : "none",
-            transform: `translateX(${offset}px)`,
+            transition: "transform 300ms cubic-bezier(0.34, 1.28, 0.64, 1)",
+            transform: `translateX(${targetOffset}px)`,
             zIndex: 0,
           }}
         />

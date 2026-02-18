@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import statusBarImage from "../../assets/Status bar.png";
 import NavBar from "../../components/NavBar";
 
@@ -114,7 +115,7 @@ export default function CardPage() {
                 paddingRight: 24,
               }}
             >
-              <a
+              <Link
                 href="/"
                 onClick={handleBack}
                 className="flex justify-center items-center transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer flex-shrink-0"
@@ -130,7 +131,7 @@ export default function CardPage() {
                 aria-label="Back"
               >
                 {backIcon}
-              </a>
+              </Link>
             </header>
 
             {/* Card – starts expanded, shrinks to origin on back */}
