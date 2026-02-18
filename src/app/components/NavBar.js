@@ -1,11 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import avatarImage from "../assets/courtneys-cat.jpeg";
 
 const NAV_PREV_KEY = "nav_active_page";
+
+function pathToPage(pathname) {
+  if (pathname === "/today") return "today";
+  if (pathname === "/threads") return "threads";
+  if (pathname === "/insight") return "today";
+  return "ideas";
+}
 
 const IdeasIcon = () => (
   <div style={{ display: "flex", width: 24, height: 24, flexDirection: "column", justifyContent: "center", alignItems: "center", flexShrink: 0 }}>
@@ -58,32 +66,53 @@ const labelStyle = {
   fontWeight: 700,
   lineHeight: "90%",
   letterSpacing: -0.24,
+  whiteSpace: "nowrap",
 };
 
-export default function NavBar({ activePage = "ideas" }) {
+export default function NavBar({ activePage: activePageProp }) {
+  const pathname = usePathname();
+  const activePage = activePageProp ?? pathToPage(pathname);
   const targetOffset = INDICATOR_OFFSETS[activePage] ?? 0;
-  const [offset, setOffset] = useState(targetOffset);
-  const [animate, setAnimate] = useState(false);
-  const mountedRef = useRef(false);
 
-  useEffect(() => {
-    if (mountedRef.current) return;
-    mountedRef.current = true;
-
+  const needsMountAnimation = useRef(false);
+  const [offset, setOffset] = useState(() => {
+    if (typeof window === "undefined") return targetOffset;
     try {
       const prev = sessionStorage.getItem(NAV_PREV_KEY);
       if (prev && prev !== activePage && INDICATOR_OFFSETS[prev] !== undefined) {
-        setOffset(INDICATOR_OFFSETS[prev]);
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setAnimate(true);
-            setOffset(INDICATOR_OFFSETS[activePage] ?? 0);
-          });
-        });
+        needsMountAnimation.current = true;
+        return INDICATOR_OFFSETS[prev];
       }
-      sessionStorage.setItem(NAV_PREV_KEY, activePage);
     } catch (_) {}
-  }, [activePage]);
+    return targetOffset;
+  });
+  const [animate, setAnimate] = useState(false);
+  const currentPageRef = useRef(activePage);
+
+  // Mount animation (remount case — e.g. returning from /reflection)
+  useEffect(() => {
+    if (needsMountAnimation.current) {
+      needsMountAnimation.current = false;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setAnimate(true);
+          setOffset(targetOffset);
+        });
+      });
+    }
+    try { sessionStorage.setItem(NAV_PREV_KEY, activePage); } catch (_) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Page change while mounted (persistent layout case)
+  useEffect(() => {
+    if (currentPageRef.current !== activePage) {
+      setAnimate(true);
+      setOffset(targetOffset);
+      currentPageRef.current = activePage;
+      try { sessionStorage.setItem(NAV_PREV_KEY, activePage); } catch (_) {}
+    }
+  }, [activePage, targetOffset]);
 
   return (
     <nav
@@ -133,15 +162,15 @@ export default function NavBar({ activePage = "ideas" }) {
           }}
         />
 
-        {/* Ideas */}
+        {/* For you */}
         <Link
           href="/"
           style={navButtonStyle}
-          aria-label="Ideas"
+          aria-label="For you"
           aria-current={activePage === "ideas" ? "page" : undefined}
         >
           <IdeasIcon />
-          <span style={labelStyle}>Ideas</span>
+          <span style={labelStyle}>For you</span>
         </Link>
 
         {/* Today */}
