@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import statusBarImage from "../assets/Status bar.png";
 import NavBar from "../components/NavBar";
 
@@ -93,7 +94,10 @@ export default function ReflectionPage() {
   const delayBeforeWhiteBoxMs = 500;
   const mainRef = useRef(null);
   const cardsSectionRef = useRef(null);
-  const cardRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
+  const cardRef0 = useRef(null);
+  const cardRef1 = useRef(null);
+  const cardRef2 = useRef(null);
+  const cardRef3 = useRef(null);
   const stackLeaveTimeoutRef = useRef(null);
   const hasRestoredRef = useRef(false);
   const followUp2TypewriterStartedRef = useRef(false);
@@ -144,7 +148,7 @@ export default function ReflectionPage() {
     if (hasRestoredRef.current) return;
     const startTogether = () => {
       const main = mainRef.current;
-      const refs = cardRefs;
+      const refs = [cardRef0, cardRef1, cardRef2, cardRef3];
       if (!main || refs.some((r) => !r.current)) return;
       const mainRect = main.getBoundingClientRect();
       const initial = refs.map((r) => {
@@ -334,7 +338,7 @@ export default function ReflectionPage() {
                 paddingRight: 24,
               }}
             >
-              <a
+              <Link
                 href="/"
                 onClick={handleBack}
                 className="flex justify-center items-center transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer flex-shrink-0"
@@ -351,7 +355,7 @@ export default function ReflectionPage() {
                 aria-label="Back"
               >
                 {backIcon}
-              </a>
+              </Link>
               <h1
                 className="text-[#423530] absolute left-1/2 -translate-x-1/2"
                 style={{
@@ -606,7 +610,7 @@ export default function ReflectionPage() {
                       return (
                         <div
                           key={i}
-                          ref={cardRefs[cardIndex]}
+                          ref={[cardRef0, cardRef1, cardRef2, cardRef3][cardIndex]}
                           role="button"
                           tabIndex={0}
                           className="card-enter transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer transition-opacity duration-200"
