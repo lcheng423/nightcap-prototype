@@ -21,6 +21,7 @@ function getWeekDates() {
   return { days, todayIndex };
 }
 
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const CARD_COUNT = 8;
 const DAY_COUNT = 7;
 const WEEK_SCROLLER_GAP = 4;
@@ -74,6 +75,8 @@ export default function TodayPage() {
     lastT: 0,
   });
 
+  const dayDiff = activeIndex - todayIndex;
+  const dayTitle = dayDiff === 0 ? "Today" : dayDiff === -1 ? "Yesterday" : dayDiff === 1 ? "Tomorrow" : DAY_NAMES[activeIndex];
   const indicatorBg = week[activeIndex]?.isToday ? "#DA5F3D" : "#423530";
   const titleFadeDistance = 56;
   const titleOpacity = Math.max(0, 1 - scrollY / titleFadeDistance);
@@ -312,7 +315,7 @@ export default function TodayPage() {
             transition: "opacity 140ms linear, transform 140ms linear",
           }}
         >
-          Today
+          {dayTitle}
         </h1>
 
         <div
@@ -453,6 +456,7 @@ export default function TodayPage() {
           onPointerMove={handleCarouselPointerMove}
           onPointerUp={handleCarouselPointerEnd}
           onPointerCancel={handleCarouselPointerEnd}
+          onPointerLeave={handleCarouselPointerEnd}
         >
           <div
             style={{
