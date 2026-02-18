@@ -145,6 +145,26 @@ body {
   animation: tab-slide-from-left 250ms cubic-bezier(0.25, 0.1, 0.25, 1) both;
 }
 
+@keyframes tab-fade-slide-in-from-right {
+  from { transform: translateX(24px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes tab-fade-slide-in-from-left {
+  from { transform: translateX(-24px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+@keyframes tab-fade-slide-out-to-left {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(-24px); opacity: 0; }
+}
+
+@keyframes tab-fade-slide-out-to-right {
+  from { transform: translateX(0);   opacity: 1; }
+  to   { transform: translateX(24px); opacity: 0; }
+}
+
 /* Typewriter cursor blink */
 @keyframes cursor-blink {
   0%, 50% { opacity: 1; }
