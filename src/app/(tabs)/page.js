@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useCardExpand } from "../components/CardExpandContext";
 
 const REFLECTION_STATE_KEY = "reflectionState";
 const HAS_VIEWED_INSIGHT_KEY = "hasViewedInsight";
@@ -25,12 +25,6 @@ const EXPAND_EASE = "cubic-bezier(0.25, 0.1, 0.25, 1)";
 const EXPAND_TRANSITION = ["top", "left", "width", "height", "border-radius", "padding", "transform"]
   .map((p) => `${p} ${EXPAND_MS}ms ${EXPAND_EASE}`)
   .join(", ");
-
-const backIcon = (
-  <svg width="10" height="17" viewBox="0 0 10 17" fill="none" xmlns="http://www.w3.org/2000/svg" className="block" aria-hidden>
-    <path d="M0 8.47656C0 8.23242 0.0878906 8.00781 0.273438 7.83203L8.01758 0.253906C8.18359 0.0878906 8.39844 0 8.65234 0C9.16016 0 9.55078 0.380859 9.55078 0.888672C9.55078 1.13281 9.44336 1.35742 9.28711 1.52344L2.17773 8.47656L9.28711 15.4297C9.44336 15.5957 9.55078 15.8105 9.55078 16.0645C9.55078 16.5723 9.16016 16.9531 8.65234 16.9531C8.39844 16.9531 8.18359 16.8652 8.01758 16.6895L0.273438 9.12109C0.0878906 8.93555 0 8.7207 0 8.47656Z" fill="#423530" />
-  </svg>
-);
 
 function TypewriterText({ text }) {
   return text.split("").map((char, i) =>
@@ -71,6 +65,7 @@ export default function HomePage() {
   const expandNavTimerRef = useRef(null);
   const pullStartRef = useRef(null);
   const [pullOffset, setPullOffset] = useState({ x: 0, y: 0 });
+  const { setCardExpanded, onCardBackRef } = useCardExpand();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -272,6 +267,7 @@ export default function HomePage() {
   /* Back from expanded card view — pullXY is {x,y} where the user released (null if back button) */
   const dismissCard = useCallback((pullXY = null) => {
     if (!expandingCard || expandingCard.phase === "closing" || expandingCard.phase === "closing-start") return;
+    setCardExpanded(false);
     setPullOffset({ x: 0, y: 0 });
     pullStartRef.current = null;
     if (pullXY) {
@@ -282,15 +278,12 @@ export default function HomePage() {
       setExpandingCard((prev) => prev ? { ...prev, phase: "closing" } : null);
     }
     expandNavTimerRef.current = setTimeout(() => setExpandingCard(null), EXPAND_MS + 100);
-  }, [expandingCard]);
+  }, [expandingCard, setCardExpanded]);
 
-  const handleCardBack = useCallback(
-    (e) => {
-      e.preventDefault();
-      dismissCard();
-    },
-    [dismissCard]
-  );
+  useEffect(() => {
+    onCardBackRef.current = () => dismissCard();
+    return () => { onCardBackRef.current = null; };
+  }, [dismissCard, onCardBackRef]);
 
   /* Drag-to-dismiss on the expanded card (free movement in any direction) */
   const DISMISS_THRESHOLD = 100;
@@ -436,18 +429,19 @@ export default function HomePage() {
         const dx = Math.abs(e.clientX - tapStartRef.current.x);
         const dy = Math.abs(e.clientY - tapStartRef.current.y);
         if (dx < 10 && dy < 10) {
-          const mainEl = e.currentTarget.closest("main");
+          const contentEl = frameRef.current?.parentElement;
           const cardId = order[tapStartRef.current.slot];
-          if (mainEl) {
+          if (contentEl) {
             const cr = e.currentTarget.getBoundingClientRect();
-            const mr = mainEl.getBoundingClientRect();
+            const pr = contentEl.getBoundingClientRect();
             const rect = {
-              top: Math.round(cr.top - mr.top),
-              left: Math.round(cr.left - mr.left),
+              top: Math.round(cr.top - pr.top),
+              left: Math.round(cr.left - pr.left),
               width: Math.round(cr.width),
               height: Math.round(cr.height),
             };
             setExpandingCard({ cardId, rect, phase: "mounting" });
+            setCardExpanded(true);
             /* Fallback: force open if transitionend doesn't fire */
             expandNavTimerRef.current = setTimeout(() => {
               setExpandingCard((prev) => prev && prev.phase === "expanding" ? { ...prev, phase: "open" } : prev);
@@ -721,59 +715,6 @@ export default function HomePage() {
           return <div className={blanketClass} style={blanketStyle} />;
         })()}
 
-        {/* Back button – appears once card is expanding, fades out on close or pull */}
-        {expandingCard && expandingCard.phase !== "mounting" && (() => {
-          const pullDist = Math.sqrt(pullOffset.x * pullOffset.x + pullOffset.y * pullOffset.y);
-          const pulling = pullDist > 0 && expandingCard.phase === "open";
-          const dismissXY = expandingCard.pullDismissXY;
-          const dismissDist = dismissXY ? Math.sqrt(dismissXY.x * dismissXY.x + dismissXY.y * dismissXY.y) : 0;
-          const closingFromPull = (expandingCard.phase === "closing" || expandingCard.phase === "closing-start") && dismissDist > 0;
-          const pullDismissOpacity = Math.max(0, 1 - dismissDist / 150);
-
-          let backClass = "absolute z-40";
-          let backStyle = { top: 54 + 24, left: 24 };
-
-          if (closingFromPull) {
-            if (expandingCard.phase === "closing-start") {
-              backStyle.opacity = pullDismissOpacity;
-              backStyle.transition = "none";
-            } else {
-              backStyle.opacity = 0;
-              backStyle.transition = `opacity ${EXPAND_MS}ms ${EXPAND_EASE}`;
-            }
-          } else if (pulling) {
-            backStyle.opacity = Math.max(0, 1 - pullDist / 150);
-            backStyle.transition = "none";
-          } else if (expandingCard.phase === "closing") {
-            backClass += " card-back-fade-out";
-          } else {
-            backClass += " card-back-fade-in";
-          }
-
-          return (
-          <div className={backClass} style={backStyle}>
-
-            <Link
-              href="/"
-              onClick={handleCardBack}
-              className="flex justify-center items-center transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
-              style={{
-                width: 48,
-                height: 48,
-                padding: "11.5px 13.8px",
-                aspectRatio: "1/1",
-                background: "rgba(255, 255, 255, 0.80)",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-                borderRadius: 20,
-              }}
-              aria-label="Back"
-            >
-              {backIcon}
-            </Link>
-          </div>
-          );
-        })()}
-
         {/* Card overlay: transitions between small card and expanded card */}
         {expandingCard && (() => {
           const atFinal = expandingCard.phase === "expanding" || expandingCard.phase === "open";
@@ -795,10 +736,10 @@ export default function HomePage() {
               style={{
                 position: "absolute",
                 zIndex: 30,
-                top: atFinal || isClosingStart ? 149 : expandingCard.rect.top,
+                top: atFinal || isClosingStart ? 0 : expandingCard.rect.top,
                 left: atFinal || isClosingStart ? 8 : expandingCard.rect.left,
                 width: atFinal || isClosingStart ? 386 : expandingCard.rect.width,
-                height: atFinal || isClosingStart ? 514.667 : expandingCard.rect.height,
+                height: atFinal || isClosingStart ? 664 : expandingCard.rect.height,
                 borderRadius: atFinal || isClosingStart ? 40 : 28,
                 padding: atFinal || isClosingStart ? 36 : 24,
                 transition: (pulling || expandingCard.phase === "mounting") ? "none" : EXPAND_TRANSITION,

@@ -6,6 +6,7 @@ import Image from "next/image";
 import statusBarImage from "../assets/Status bar.png";
 import TopBar from "../components/TopBar";
 import NavBar from "../components/NavBar";
+import CardExpandContext from "../components/CardExpandContext";
 
 const PAGE_TRANSITION_MS = 300;
 
@@ -38,6 +39,8 @@ export default function TabsLayout({ children }) {
   const timerRef = useRef(null);
   const [exit, setExit] = useState(null);
   const [enterKey, setEnterKey] = useState(0);
+  const [cardExpanded, setCardExpanded] = useState(false);
+  const onCardBackRef = useRef(null);
 
   useEffect(() => {
     if (contentRef.current) {
@@ -78,6 +81,7 @@ export default function TabsLayout({ children }) {
     : null;
 
   return (
+    <CardExpandContext.Provider value={{ cardExpanded, setCardExpanded, onCardBackRef }}>
     <div className="min-h-screen flex items-center justify-center bg-black">
       <main
         className="ios-frame relative overflow-hidden bg-[#EEE1C4] rounded-[60px] flex flex-col"
@@ -135,5 +139,6 @@ export default function TabsLayout({ children }) {
         <NavBar />
       </main>
     </div>
+    </CardExpandContext.Provider>
   );
 }
