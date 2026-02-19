@@ -107,7 +107,7 @@ export default function TabsLayout({ children }) {
           />
         </div>
 
-        <TopBar />
+        <TopBar notifications={0} />
 
         <div className="flex-1 relative min-h-0 overflow-hidden">
           {exit && (
@@ -136,7 +136,14 @@ export default function TabsLayout({ children }) {
           </div>
         </div>
 
-        <NavBar />
+        <div
+          className="nav-bar-enter"
+          style={{
+            animation: "nav-bar-slide-up 280ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards",
+          }}
+        >
+          <NavBar />
+        </div>
       </main>
     </div>
     </CardExpandContext.Provider>
