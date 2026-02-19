@@ -49,10 +49,11 @@ const scoreStyle = {
 
 const labelStyle = {
   display: "flex",
-  width: 48,
-  height: 24,
+  width: "100%",
+  minHeight: 24,
   flexDirection: "column",
   justifyContent: "center",
+  alignItems: "center",
   flexShrink: 0,
   color: "#423530",
   textAlign: "center",
@@ -102,8 +103,8 @@ function useCountUp(target, durationMs = SCORE_DURATION_MS) {
 
 const SCORES = [
   { slug: "becoming", Icon: BecomingIcon, target: 78, label: "Becoming", iconScale: 20 / 18, iconBoxSize: 20 },
-  { slug: "giving", Icon: GivingIcon, target: 97, label: "Giving", iconScale: 20 / 16, iconBoxSize: 20 },
-  { slug: "aware", Icon: AwareIcon, target: 92, label: "Aware", iconScale: 24 / 28, iconBoxSize: 24 },
+  { slug: "giving", Icon: GivingIcon, target: 97, label: "Supporting", iconScale: 20 / 16, iconBoxSize: 20 },
+  { slug: "aware", Icon: AwareIcon, target: 92, label: "Intentionality", iconScale: 24 / 28, iconBoxSize: 24 },
 ];
 
 function ScoreBox({ slug, Icon, target, label, iconScale, iconBoxSize = 20 }) {

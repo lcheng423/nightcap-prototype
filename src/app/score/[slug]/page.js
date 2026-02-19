@@ -11,8 +11,8 @@ const EXIT_DURATION_MS = 280;
 
 const SLUG_TITLE = {
   becoming: "Becoming",
-  giving: "Giving",
-  aware: "Aware",
+  giving: "Supporting",
+  aware: "Intentionality",
 };
 
 const SLUG_PLACEHOLDER = {
@@ -141,8 +141,10 @@ export default function ScorePage() {
               lineHeight: 1.2,
               letterSpacing: -0.48,
               textAlign: "center",
-              marginLeft: 36,
-              marginRight: 36,
+              width: "100%",
+              boxSizing: "border-box",
+              paddingLeft: 36,
+              paddingRight: 36,
               marginTop: 0,
               flexShrink: 0,
             }}
