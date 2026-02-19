@@ -593,7 +593,7 @@ export default function CardPage() {
                     <div
                       style={{
                         display: "flex",
-                        alignItems: "flex-end",
+                        alignItems: "center",
                         justifyContent: "flex-end",
                         gap: 1.5,
                         height: 28,
