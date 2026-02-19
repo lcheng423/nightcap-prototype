@@ -39,6 +39,17 @@ const SaveCalendarIcon = (
   </svg>
 );
 
+const MicIcon = ({ active = false }) =>
+  active ? (
+    <svg width="15" height="18" viewBox="0 0 15 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M1.04492 8.26172C0.745443 8.26172 0.494792 8.16406 0.292969 7.96875C0.0976562 7.76693 0 7.51302 0 7.20703C0 6.91406 0.113932 6.65039 0.341797 6.41602L6.40625 0.341797C6.51693 0.23112 6.64062 0.146484 6.77734 0.0878906C6.92057 0.0292969 7.06706 0 7.2168 0C7.36654 0 7.51302 0.0292969 7.65625 0.0878906C7.79948 0.146484 7.92318 0.23112 8.02734 0.341797L14.0918 6.41602C14.3262 6.65039 14.4434 6.91406 14.4434 7.20703C14.4434 7.51302 14.3424 7.76693 14.1406 7.96875C13.9388 8.16406 13.6914 8.26172 13.3984 8.26172C13.2357 8.26172 13.0892 8.23242 12.959 8.17383C12.8288 8.11523 12.7148 8.03711 12.6172 7.93945L10.5273 5.86914L7.20703 2.13867L3.90625 5.86914L1.81641 7.93945C1.71875 8.03711 1.60482 8.11523 1.47461 8.17383C1.3444 8.23242 1.20117 8.26172 1.04492 8.26172ZM7.2168 17.5684C6.89128 17.5684 6.6276 17.4674 6.42578 17.2656C6.22396 17.0638 6.12305 16.7969 6.12305 16.4648V5.29297L6.25 2.16797C6.25 1.86849 6.33789 1.6276 6.51367 1.44531C6.69596 1.25651 6.93034 1.16211 7.2168 1.16211C7.50977 1.16211 7.74414 1.25651 7.91992 1.44531C8.10221 1.6276 8.19336 1.86849 8.19336 2.16797L8.31055 5.29297V16.4648C8.31055 16.7969 8.20964 17.0638 8.00781 17.2656C7.80599 17.4674 7.54232 17.5684 7.2168 17.5684Z" fill="currentColor" />
+    </svg>
+  ) : (
+    <svg width="13" height="17" viewBox="0 0 13 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M3.0835 7.35352V3.14209C3.0835 1.30371 4.34326 0 6.07178 0C7.79297 0 9.06006 1.30371 9.06006 3.14209V7.35352C9.06006 9.20654 7.79297 10.4956 6.07178 10.4956C4.34326 10.4956 3.0835 9.20654 3.0835 7.35352ZM5.09766 7.43408C5.09766 8.10059 5.44189 8.64258 6.07178 8.64258C6.70166 8.64258 7.0459 8.10059 7.0459 7.43408V3.06152C7.0459 2.40234 6.70166 1.86035 6.07178 1.86035C5.44189 1.86035 5.09766 2.40967 5.09766 3.06152V7.43408ZM2.67334 16.3257C2.13135 16.3257 1.6626 15.8789 1.6626 15.3516C1.6626 14.8096 2.13135 14.3774 2.67334 14.3774H5.1416V13.4619C2.17529 13.103 0 11.001 0 7.80762V6.51855C0 5.98389 0.446777 5.57373 0.98877 5.57373C1.53809 5.57373 1.99219 5.98389 1.99219 6.51855V7.7417C1.99219 10.1001 3.73535 11.6235 6.07178 11.6235C8.4082 11.6235 10.1514 10.1001 10.1514 7.7417V6.51855C10.1514 5.98389 10.6055 5.57373 11.1475 5.57373C11.6968 5.57373 12.1436 5.98389 12.1436 6.51855V7.80762C12.1436 11.001 9.96826 13.103 6.99463 13.4619V14.3774H9.47021C10.0122 14.3774 10.4736 14.8096 10.4736 15.3516C10.4736 15.8789 10.0122 16.3257 9.47021 16.3257H2.67334Z" fill="currentColor" />
+    </svg>
+  );
+
 const EXIT_DURATION_MS = 280;
 const THINKING_DELAY_MS = 2600;
 
@@ -63,8 +74,13 @@ export default function CardPage() {
   const [replyInput, setReplyInput] = useState("");
   const [saveFlowActive, setSaveFlowActive] = useState(false);
   const [saveOptionsVisible, setSaveOptionsVisible] = useState(false);
+  const WAVEFORM_BAR_COUNT = 70;
+  const WAVEFORM_IDLE = { height: 16, opacity: 0.2 };
+  const initialWaveformBars = () =>
+    Array.from({ length: WAVEFORM_BAR_COUNT }, () => ({ ...WAVEFORM_IDLE }));
+
   const [isRecording, setIsRecording] = useState(false);
-  const [waveformHeights, setWaveformHeights] = useState(() => [8]);
+  const [waveformBars, setWaveformBars] = useState(() => initialWaveformBars());
   const nextMessageIdRef = useRef(1);
   const pendingTimeoutsRef = useRef([]);
   const lastMessageRef = useRef(null);
@@ -184,17 +200,20 @@ export default function CardPage() {
   }, [saveFlowActive]);
 
   useEffect(() => {
-    if (!isRecording) return;
-    setWaveformHeights([8]);
-    const heights = [4, 8, 12, 16, 20, 24, 28];
-    const maxBars = 24;
+    if (!isRecording) {
+      setWaveformBars(initialWaveformBars());
+      return;
+    }
+    const heights = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28];
     const interval = setInterval(() => {
-      setWaveformHeights((prev) => {
-        const newBar = heights[Math.floor(Math.random() * heights.length)];
-        if (prev.length >= maxBars) return [...prev.slice(1), newBar];
-        return [...prev, newBar];
+      setWaveformBars((prev) => {
+        const newBar = {
+          height: heights[Math.floor(Math.random() * heights.length)],
+          opacity: 1,
+        };
+        return [...prev.slice(1), newBar];
       });
-    }, 100);
+    }, 80);
     return () => clearInterval(interval);
   }, [isRecording]);
 
@@ -571,15 +590,25 @@ export default function CardPage() {
                     aria-live="polite"
                     aria-label="Recording"
                   >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2, height: 28, width: "100%" }}>
-                      {waveformHeights.map((h, i) => (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-end",
+                        justifyContent: "flex-end",
+                        gap: 1.5,
+                        height: 28,
+                        width: "100%",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {waveformBars.map((bar, i) => (
                         <div
                           key={i}
                           style={{
                             width: 2,
-                            height: h,
-                            background: "#423530",
-                            borderRadius: 2,
+                            height: bar.height,
+                            borderRadius: 100,
+                            background: `rgba(66, 53, 48, ${bar.opacity})`,
                             flexShrink: 0,
                           }}
                         />
@@ -639,16 +668,15 @@ export default function CardPage() {
                     gap: 18.4,
                     flexShrink: 0,
                     borderRadius: 22,
-                    background: isRecording ? "#2a2a2a" : "rgba(255, 255, 255, 0.8)",
+                    background: isRecording ? "#423530" : "rgba(255, 255, 255, 0.8)",
+                    color: isRecording ? "#FFF" : "#423530",
                     cursor: "pointer",
                     border: "none",
                   }}
                   aria-label={isRecording ? "Stop recording" : "Voice input"}
                   onClick={handleVoiceClick}
                 >
-                  <svg width="13" height="17" viewBox="0 0 13 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                    <path d="M3.0835 7.35352V3.14209C3.0835 1.30371 4.34326 0 6.07178 0C7.79297 0 9.06006 1.30371 9.06006 3.14209V7.35352C9.06006 9.20654 7.79297 10.4956 6.07178 10.4956C4.34326 10.4956 3.0835 9.20654 3.0835 7.35352ZM5.09766 7.43408C5.09766 8.10059 5.44189 8.64258 6.07178 8.64258C6.70166 8.64258 7.0459 8.10059 7.0459 7.43408V3.06152C7.0459 2.40234 6.70166 1.86035 6.07178 1.86035C5.44189 1.86035 5.09766 2.40967 5.09766 3.06152V7.43408ZM2.67334 16.3257C2.13135 16.3257 1.6626 15.8789 1.6626 15.3516C1.6626 14.8096 2.13135 14.3774 2.67334 14.3774H5.1416V13.4619C2.17529 13.103 0 11.001 0 7.80762V6.51855C0 5.98389 0.446777 5.57373 0.98877 5.57373C1.53809 5.57373 1.99219 5.98389 1.99219 6.51855V7.7417C1.99219 10.1001 3.73535 11.6235 6.07178 11.6235C8.4082 11.6235 10.1514 10.1001 10.1514 7.7417V6.51855C10.1514 5.98389 10.6055 5.57373 11.1475 5.57373C11.6968 5.57373 12.1436 5.98389 12.1436 6.51855V7.80762C12.1436 11.001 9.96826 13.103 6.99463 13.4619V14.3774H9.47021C10.0122 14.3774 10.4736 14.8096 10.4736 15.3516C10.4736 15.8789 10.0122 16.3257 9.47021 16.3257H2.67334Z" fill={isRecording ? "#fff" : "#423530"}/>
-                  </svg>
+                  <MicIcon active={isRecording} />
                 </button>
               </div>
             </div>
