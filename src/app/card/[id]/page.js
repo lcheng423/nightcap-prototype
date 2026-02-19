@@ -33,15 +33,32 @@ const BackIcon = (
   </svg>
 );
 
+const SaveCalendarIcon = (
+  <svg width="14" height="21" viewBox="0 0 14 21" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+    <path d="M1.46484 20.8105C0.576172 20.8105 0 20.1953 0 19.2188V2.99805C0 1.06445 1.05469 0 2.97852 0H10.4883C12.4121 0 13.4668 1.06445 13.4668 2.99805V19.2188C13.4668 20.1953 12.8906 20.8105 12.002 20.8105C11.4355 20.8105 11.0645 20.5566 10.3223 19.8242L6.80664 16.3281C6.76758 16.2891 6.69922 16.2891 6.66016 16.3281L3.1543 19.8242C2.41211 20.5469 2.03125 20.8105 1.46484 20.8105ZM2.5 17.1289L5.97656 13.7695C6.48438 13.2812 6.99219 13.2812 7.49023 13.7695L10.9668 17.1289C11.084 17.2461 11.2207 17.207 11.2207 17.0312V3.21289C11.2207 2.54883 10.918 2.24609 10.2539 2.24609H3.21289C2.54883 2.24609 2.24609 2.54883 2.24609 3.21289V17.0312C2.24609 17.207 2.38281 17.2461 2.5 17.1289Z" fill="#423530" />
+  </svg>
+);
+
+const MicIcon = ({ active = false }) =>
+  active ? (
+    <svg width="15" height="18" viewBox="0 0 15 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M1.04492 8.26172C0.745443 8.26172 0.494792 8.16406 0.292969 7.96875C0.0976562 7.76693 0 7.51302 0 7.20703C0 6.91406 0.113932 6.65039 0.341797 6.41602L6.40625 0.341797C6.51693 0.23112 6.64062 0.146484 6.77734 0.0878906C6.92057 0.0292969 7.06706 0 7.2168 0C7.36654 0 7.51302 0.0292969 7.65625 0.0878906C7.79948 0.146484 7.92318 0.23112 8.02734 0.341797L14.0918 6.41602C14.3262 6.65039 14.4434 6.91406 14.4434 7.20703C14.4434 7.51302 14.3424 7.76693 14.1406 7.96875C13.9388 8.16406 13.6914 8.26172 13.3984 8.26172C13.2357 8.26172 13.0892 8.23242 12.959 8.17383C12.8288 8.11523 12.7148 8.03711 12.6172 7.93945L10.5273 5.86914L7.20703 2.13867L3.90625 5.86914L1.81641 7.93945C1.71875 8.03711 1.60482 8.11523 1.47461 8.17383C1.3444 8.23242 1.20117 8.26172 1.04492 8.26172ZM7.2168 17.5684C6.89128 17.5684 6.6276 17.4674 6.42578 17.2656C6.22396 17.0638 6.12305 16.7969 6.12305 16.4648V5.29297L6.25 2.16797C6.25 1.86849 6.33789 1.6276 6.51367 1.44531C6.69596 1.25651 6.93034 1.16211 7.2168 1.16211C7.50977 1.16211 7.74414 1.25651 7.91992 1.44531C8.10221 1.6276 8.19336 1.86849 8.19336 2.16797L8.31055 5.29297V16.4648C8.31055 16.7969 8.20964 17.0638 8.00781 17.2656C7.80599 17.4674 7.54232 17.5684 7.2168 17.5684Z" fill="currentColor" />
+    </svg>
+  ) : (
+    <svg width="13" height="17" viewBox="0 0 13 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M3.0835 7.35352V3.14209C3.0835 1.30371 4.34326 0 6.07178 0C7.79297 0 9.06006 1.30371 9.06006 3.14209V7.35352C9.06006 9.20654 7.79297 10.4956 6.07178 10.4956C4.34326 10.4956 3.0835 9.20654 3.0835 7.35352ZM5.09766 7.43408C5.09766 8.10059 5.44189 8.64258 6.07178 8.64258C6.70166 8.64258 7.0459 8.10059 7.0459 7.43408V3.06152C7.0459 2.40234 6.70166 1.86035 6.07178 1.86035C5.44189 1.86035 5.09766 2.40967 5.09766 3.06152V7.43408ZM2.67334 16.3257C2.13135 16.3257 1.6626 15.8789 1.6626 15.3516C1.6626 14.8096 2.13135 14.3774 2.67334 14.3774H5.1416V13.4619C2.17529 13.103 0 11.001 0 7.80762V6.51855C0 5.98389 0.446777 5.57373 0.98877 5.57373C1.53809 5.57373 1.99219 5.98389 1.99219 6.51855V7.7417C1.99219 10.1001 3.73535 11.6235 6.07178 11.6235C8.4082 11.6235 10.1514 10.1001 10.1514 7.7417V6.51855C10.1514 5.98389 10.6055 5.57373 11.1475 5.57373C11.6968 5.57373 12.1436 5.98389 12.1436 6.51855V7.80762C12.1436 11.001 9.96826 13.103 6.99463 13.4619V14.3774H9.47021C10.0122 14.3774 10.4736 14.8096 10.4736 15.3516C10.4736 15.8789 10.0122 16.3257 9.47021 16.3257H2.67334Z" fill="currentColor" />
+    </svg>
+  );
+
 const EXIT_DURATION_MS = 280;
 const THINKING_DELAY_MS = 2600;
 
 const FAKE_REPLIES = [
-  "That's a great question. I'd sit with it a bit.",
-  "I hear you. What would it look like if you gave yourself permission to explore that?",
-  "Tell me more about that.",
-  "It sounds like you're onto something. Keep going.",
-  "What if the opposite were true?",
+  "You're really onto something.",
+  "I hear you. That matters.",
+  "That takes courage to say.",
+  "You're doing the work. Keep going.",
+  "I believe in you.",
 ];
 
 function getFakeReply() {
@@ -55,10 +72,39 @@ export default function CardPage() {
   const [isExiting, setIsExiting] = useState(false);
   const [messages, setMessages] = useState([]);
   const [replyInput, setReplyInput] = useState("");
-  const messagesEndRef = useRef(null);
+  const [saveFlowActive, setSaveFlowActive] = useState(false);
+  const [saveOptionsVisible, setSaveOptionsVisible] = useState(false);
+  const WAVEFORM_BAR_COUNT = 70;
+  const WAVEFORM_IDLE = { height: 16, opacity: 0.2 };
+  const initialWaveformBars = () =>
+    Array.from({ length: WAVEFORM_BAR_COUNT }, () => ({ ...WAVEFORM_IDLE }));
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [waveformBars, setWaveformBars] = useState(() => initialWaveformBars());
+  const nextMessageIdRef = useRef(1);
+  const pendingTimeoutsRef = useRef([]);
   const lastMessageRef = useRef(null);
   const messagesSectionRef = useRef(null);
   const replyFieldRef = useRef(null);
+
+  const createMessage = (role, text) => ({
+    id: nextMessageIdRef.current++,
+    role,
+    text,
+  });
+
+  const appendMessage = (role, text) => {
+    setMessages((prev) => [...prev, createMessage(role, text)]);
+  };
+
+  const scheduleTimeout = (cb, ms) => {
+    const id = setTimeout(() => {
+      pendingTimeoutsRef.current = pendingTimeoutsRef.current.filter((t) => t !== id);
+      cb();
+    }, ms);
+    pendingTimeoutsRef.current.push(id);
+    return id;
+  };
 
   const resizeReplyField = () => {
     const el = replyFieldRef.current;
@@ -74,6 +120,14 @@ export default function CardPage() {
   useEffect(() => {
     resizeReplyField();
   }, [replyInput]);
+
+  useEffect(
+    () => () => {
+      pendingTimeoutsRef.current.forEach((id) => clearTimeout(id));
+      pendingTimeoutsRef.current = [];
+    },
+    []
+  );
 
   const card = useMemo(() => getCardById(params?.id), [params?.id]);
   const hasContent = !!card?.hasContent;
@@ -113,11 +167,9 @@ export default function CardPage() {
     const text = replyInput.trim();
     if (!text) return;
     setReplyInput("");
-    setMessages((prev) => [...prev, { role: "user", text }]);
+    appendMessage("user", text);
     const reply = getFakeReply();
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
-    }, THINKING_DELAY_MS);
+    scheduleTimeout(() => appendMessage("assistant", reply), THINKING_DELAY_MS);
   };
 
   const handleReplyKeyDown = (e) => {
@@ -126,6 +178,73 @@ export default function CardPage() {
       handleSendReply();
     }
   };
+
+  const SAVE_BUTTONS_FADE_MS = 280;
+  const handleSaveItClick = () => {
+    setSaveFlowActive(true);
+    setSaveOptionsVisible(false);
+    appendMessage("user", "save it");
+    scheduleTimeout(
+      () => appendMessage("assistant", "When do you want to save it to?"),
+      THINKING_DELAY_MS
+    );
+  };
+
+  useEffect(() => {
+    if (!saveFlowActive) {
+      setSaveOptionsVisible(false);
+      return;
+    }
+    const t = setTimeout(() => setSaveOptionsVisible(true), SAVE_BUTTONS_FADE_MS);
+    return () => clearTimeout(t);
+  }, [saveFlowActive]);
+
+  useEffect(() => {
+    if (!isRecording) {
+      setWaveformBars(initialWaveformBars());
+      return;
+    }
+    const heights = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28];
+    const interval = setInterval(() => {
+      setWaveformBars((prev) => {
+        const newBar = {
+          height: heights[Math.floor(Math.random() * heights.length)],
+          opacity: 1,
+        };
+        return [...prev.slice(1), newBar];
+      });
+    }, 80);
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const handleVoiceClick = () => {
+    if (isRecording) {
+      setIsRecording(false);
+      appendMessage("user", "I said this with my voice.");
+      const reply = getFakeReply();
+      scheduleTimeout(() => appendMessage("assistant", reply), THINKING_DELAY_MS);
+    } else {
+      setIsRecording(true);
+    }
+  };
+
+  const SAVE_OPTIONS = [
+    { label: "Today", replyText: "today" },
+    { label: "This week", replyText: "this week" },
+    { label: "Next week", replyText: "next week" },
+  ];
+
+  const handleSaveOptionClick = (option) => {
+    appendMessage("user", option.label);
+    setSaveFlowActive(false);
+    setSaveOptionsVisible(false);
+    scheduleTimeout(
+      () => appendMessage("assistant", `Saved it for you to ${option.replyText}.`),
+      THINKING_DELAY_MS
+    );
+  };
+
+  const buttonsHidden = replyInput.length > 0 || saveFlowActive;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
@@ -259,7 +378,7 @@ export default function CardPage() {
               {messages.map((msg, i) =>
                 msg.role === "user" ? (
                   <div
-                    key={`user-${i}`}
+                    key={msg.id}
                     ref={i === messages.length - 1 ? lastMessageRef : undefined}
                     style={{
                       alignSelf: "flex-end",
@@ -298,7 +417,7 @@ export default function CardPage() {
                   </div>
                 ) : (
                   <div
-                    key={`assistant-${i}`}
+                    key={msg.id}
                     ref={i === messages.length - 1 ? lastMessageRef : undefined}
                     style={{ alignSelf: "flex-start", width: "100%" }}
                   >
@@ -344,7 +463,6 @@ export default function CardPage() {
                   </span>
                 </div>
               )}
-              <div ref={messagesEndRef} />
             </section>
 
             <div
@@ -362,9 +480,9 @@ export default function CardPage() {
                   style={{
                     ...ACTION_BUTTON_STYLE,
                     transition: "transform 0.2s ease-out, opacity 0.25s ease",
-                    transitionDelay: replyInput.length > 0 ? "0ms" : "0ms",
-                    opacity: replyInput.length > 0 ? 0 : 1,
-                    pointerEvents: replyInput.length > 0 ? "none" : "auto",
+                    transitionDelay: buttonsHidden ? "0ms" : "0ms",
+                    opacity: buttonsHidden ? 0 : 1,
+                    pointerEvents: buttonsHidden ? "none" : "auto",
                   }}
                   onClick={() => {}}
                   aria-label="Share it"
@@ -380,9 +498,9 @@ export default function CardPage() {
                   style={{
                     ...ACTION_BUTTON_STYLE,
                     transition: "transform 0.2s ease-out, opacity 0.25s ease",
-                    transitionDelay: replyInput.length > 0 ? "80ms" : "0ms",
-                    opacity: replyInput.length > 0 ? 0 : 1,
-                    pointerEvents: replyInput.length > 0 ? "none" : "auto",
+                    transitionDelay: buttonsHidden ? "80ms" : "0ms",
+                    opacity: buttonsHidden ? 0 : 1,
+                    pointerEvents: buttonsHidden ? "none" : "auto",
                   }}
                   onClick={() => {}}
                   aria-label="Remix it"
@@ -398,11 +516,11 @@ export default function CardPage() {
                   style={{
                     ...ACTION_BUTTON_STYLE,
                     transition: "transform 0.2s ease-out, opacity 0.25s ease",
-                    transitionDelay: replyInput.length > 0 ? "160ms" : "0ms",
-                    opacity: replyInput.length > 0 ? 0 : 1,
-                    pointerEvents: replyInput.length > 0 ? "none" : "auto",
+                    transitionDelay: buttonsHidden ? "160ms" : "0ms",
+                    opacity: buttonsHidden ? 0 : 1,
+                    pointerEvents: buttonsHidden ? "none" : "auto",
                   }}
-                  onClick={() => {}}
+                  onClick={handleSaveItClick}
                   aria-label="Save it"
                 >
                   <svg width="11" height="17" viewBox="0 0 11 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
@@ -412,43 +530,129 @@ export default function CardPage() {
                 </button>
               </div>
 
+              {saveFlowActive && saveOptionsVisible && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                  {SAVE_OPTIONS.map((option) => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      className="transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97]"
+                      style={{
+                        display: "flex",
+                        width: "100%",
+                        maxWidth: 350,
+                        height: 55,
+                        padding: "15.333px 18.4px",
+                        alignItems: "center",
+                        gap: 18.4,
+                        borderRadius: 22,
+                        background: "#F7F0E1",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#423530",
+                        fontFamily: "var(--font-din-rounded), sans-serif",
+                        fontSize: 18,
+                        fontStyle: "normal",
+                        fontWeight: 600,
+                        lineHeight: "98%",
+                        letterSpacing: -0.36,
+                      }}
+                      onClick={() => handleSaveOptionClick(option)}
+                      aria-label={`Save to ${option.label}`}
+                    >
+                      {SaveCalendarIcon}
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "flex-end" }}>
-                <textarea
-                  ref={replyFieldRef}
-                  placeholder="Reply to Tangle"
-                  aria-label="Reply to Tangle"
-                  value={replyInput}
-                  onChange={(e) => setReplyInput(e.target.value)}
-                  onKeyDown={handleReplyKeyDown}
-                  rows={1}
-                  style={{
-                    display: "block",
-                    height: 56,
-                    minHeight: 56,
-                    maxHeight: 160,
-                    width: "100%",
-                    flex: "1 1 0",
-                    paddingTop: 17.2,
-                    paddingBottom: 17.2,
-                    paddingLeft: 26.4,
-                    paddingRight: 26.4,
-                    borderRadius: 22,
-                    background: "#F7F0E1",
-                    border: "none",
-                    outline: "none",
-                    color: "#423530",
-                    fontFamily: "var(--font-din-rounded), sans-serif",
-                    fontSize: 18,
-                    fontStyle: "normal",
-                    fontWeight: 600,
-                    lineHeight: 1.2,
-                    letterSpacing: -0.36,
-                    resize: "none",
-                    overflowY: "auto",
-                    boxSizing: "border-box",
-                  }}
-                  className="reply-input-placeholder"
-                />
+                {isRecording ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-end",
+                      height: 56,
+                      minHeight: 56,
+                      width: "100%",
+                      flex: "1 1 0",
+                      paddingTop: 17.2,
+                      paddingBottom: 17.2,
+                      paddingLeft: 26.4,
+                      paddingRight: 26.4,
+                      borderRadius: 22,
+                      background: "#FFF",
+                      border: "none",
+                      boxSizing: "border-box",
+                    }}
+                    aria-live="polite"
+                    aria-label="Recording"
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        gap: 1.5,
+                        height: 28,
+                        width: "100%",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {waveformBars.map((bar, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            width: 2,
+                            height: bar.height,
+                            borderRadius: 100,
+                            background: `rgba(66, 53, 48, ${bar.opacity})`,
+                            flexShrink: 0,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <textarea
+                    ref={replyFieldRef}
+                    placeholder="Reply to Tangle"
+                    aria-label="Reply to Tangle"
+                    value={replyInput}
+                    onChange={(e) => setReplyInput(e.target.value)}
+                    onKeyDown={handleReplyKeyDown}
+                    rows={1}
+                    style={{
+                      display: "block",
+                      height: 56,
+                      minHeight: 56,
+                      maxHeight: 160,
+                      width: "100%",
+                      flex: "1 1 0",
+                      paddingTop: 17.2,
+                      paddingBottom: 17.2,
+                      paddingLeft: 26.4,
+                      paddingRight: 26.4,
+                      borderRadius: 22,
+                      background: "#F7F0E1",
+                      border: "none",
+                      outline: "none",
+                      color: "#423530",
+                      fontFamily: "var(--font-din-rounded), sans-serif",
+                      fontSize: 18,
+                      fontStyle: "normal",
+                      fontWeight: 600,
+                      lineHeight: 1.2,
+                      letterSpacing: -0.36,
+                      resize: "none",
+                      overflowY: "auto",
+                      boxSizing: "border-box",
+                    }}
+                    className="reply-input-placeholder"
+                  />
+                )}
 
                 <button
                   type="button"
@@ -464,16 +668,15 @@ export default function CardPage() {
                     gap: 18.4,
                     flexShrink: 0,
                     borderRadius: 22,
-                    background: "rgba(255, 255, 255, 0.8)",
+                    background: isRecording ? "#423530" : "rgba(255, 255, 255, 0.8)",
+                    color: isRecording ? "#FFF" : "#423530",
                     cursor: "pointer",
                     border: "none",
                   }}
-                  aria-label="Voice input"
-                  onClick={() => {}}
+                  aria-label={isRecording ? "Stop recording" : "Voice input"}
+                  onClick={handleVoiceClick}
                 >
-                  <svg width="26" height="29" viewBox="0 0 26 29" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                    <path d="M10.3385 28.1768C9.64838 28.1768 9.11453 27.6299 9.11453 26.9528V1.23665C9.11453 0.559569 9.64838 -0.000326641 10.3385 -0.000326641C11.0416 -0.000326641 11.5755 0.559569 11.5755 1.23665V26.9528C11.5755 27.6299 11.0416 28.1768 10.3385 28.1768ZM19.4661 25.3252C18.763 25.3252 18.2291 24.7653 18.2291 24.0882V4.10124C18.2291 3.42415 18.763 2.85124 19.4661 2.85124C20.1562 2.85124 20.7031 3.42415 20.7031 4.10124V24.0882C20.7031 24.7653 20.1562 25.3252 19.4661 25.3252ZM5.78119 23.2549C5.09109 23.2549 4.55724 22.708 4.55724 22.0179V6.15853C4.55724 5.48144 5.09109 4.92155 5.78119 4.92155C6.48432 4.92155 7.01817 5.48144 7.01817 6.15853V22.0179C7.01817 22.708 6.48432 23.2549 5.78119 23.2549ZM14.9088 21.484C14.2057 21.484 13.6718 20.9502 13.6718 20.2601V7.91634C13.6718 7.23926 14.2057 6.67936 14.9088 6.67936C15.5989 6.67936 16.1458 7.23926 16.1458 7.91634V20.2601C16.1458 20.9502 15.5989 21.484 14.9088 21.484ZM24.0234 19.0101C23.3203 19.0101 22.7994 18.4632 22.7994 17.7731V10.4033C22.7994 9.72624 23.3203 9.16634 24.0234 9.16634C24.7135 9.16634 25.2604 9.72624 25.2604 10.4033V17.7731C25.2604 18.4632 24.7135 19.0101 24.0234 19.0101ZM1.2239 17.7731C0.533798 17.7731 -5.61085e-05 17.2132 -5.61085e-05 16.5361V11.6533C-5.61085e-05 10.9632 0.533798 10.4033 1.2239 10.4033C1.91401 10.4033 2.46088 10.9632 2.46088 11.6533V16.5361C2.46088 17.2132 1.91401 17.7731 1.2239 17.7731Z" fill="#423530"/>
-                  </svg>
+                  <MicIcon active={isRecording} />
                 </button>
               </div>
             </div>

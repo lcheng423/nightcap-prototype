@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCardExpand } from "../components/CardExpandContext";
 import { CARD_CONTENT, CARD_IDS } from "../components/cardContent";
+import HomeScoresRow from "../components/HomeScoresRow";
 
 const REFLECTION_STATE_KEY = "reflectionState";
 const HAS_VIEWED_INSIGHT_KEY = "hasViewedInsight";
@@ -442,26 +443,12 @@ export default function HomePage() {
           className="flex flex-col w-full"
           style={{ paddingLeft: 24, paddingRight: 24 }}
         >
-          <h1
-            className="text-[#423530] mb-1"
-            style={{
-              width: "100%",
-              maxWidth: 342,
-              fontFamily: "var(--font-din-rounded), sans-serif",
-              fontSize: 32,
-              fontStyle: "normal",
-              fontWeight: 600,
-              lineHeight: "98%",
-              letterSpacing: -0.64,
-            }}
-          >
-            Morning, Courtney!
-          </h1>
+          <HomeScoresRow />
 
           {/* Card grid */}
           <div
             style={{
-              marginTop: 32,
+              marginTop: 8,
               marginLeft: -16,
               marginRight: -16,
               marginBottom: 36,
