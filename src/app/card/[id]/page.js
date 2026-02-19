@@ -7,26 +7,6 @@ import statusBarImage from "../../assets/Status bar.png";
 import TypewriterText from "../../components/TypewriterText";
 import { getCardById } from "../../components/cardContent";
 
-const ACTION_BUTTON_STYLE = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 8,
-  flex: "1 1 0%",
-  height: 46,
-  borderRadius: 20,
-  background: "rgba(255, 255, 255, 0.8)",
-  color: "#423530",
-  fontFamily: "var(--font-din-rounded), sans-serif",
-  fontSize: 18,
-  fontStyle: "normal",
-  fontWeight: 600,
-  lineHeight: "98%",
-  letterSpacing: -0.36,
-  cursor: "pointer",
-  border: "none",
-};
-
 const BackIcon = (
   <svg width="10" height="17" viewBox="0 0 10 17" fill="none" xmlns="http://www.w3.org/2000/svg" className="block" aria-hidden>
     <path d="M0 8.47656C0 8.23242 0.0878906 8.00781 0.273438 7.83203L8.01758 0.253906C8.18359 0.0878906 8.39844 0 8.65234 0C9.16016 0 9.55078 0.380859 9.55078 0.888672C9.55078 1.13281 9.44336 1.35742 9.28711 1.52344L2.17773 8.47656L9.28711 15.4297C9.44336 15.5957 9.55078 15.8105 9.55078 16.0645C9.55078 16.5723 9.16016 16.9531 8.65234 16.9531C8.39844 16.9531 8.18359 16.8652 8.01758 16.6895L0.273438 9.12109C0.0878906 8.93555 0 8.7207 0 8.47656Z" fill="#423530" />
@@ -65,10 +45,30 @@ export default function CardPage() {
   const [saveOptionsVisible, setSaveOptionsVisible] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [waveformHeights, setWaveformHeights] = useState(() => [8]);
-  const messagesEndRef = useRef(null);
+  const nextMessageIdRef = useRef(1);
+  const pendingTimeoutsRef = useRef([]);
   const lastMessageRef = useRef(null);
   const messagesSectionRef = useRef(null);
   const replyFieldRef = useRef(null);
+
+  const createMessage = (role, text) => ({
+    id: nextMessageIdRef.current++,
+    role,
+    text,
+  });
+
+  const appendMessage = (role, text) => {
+    setMessages((prev) => [...prev, createMessage(role, text)]);
+  };
+
+  const scheduleTimeout = (cb, ms) => {
+    const id = setTimeout(() => {
+      pendingTimeoutsRef.current = pendingTimeoutsRef.current.filter((t) => t !== id);
+      cb();
+    }, ms);
+    pendingTimeoutsRef.current.push(id);
+    return id;
+  };
 
   const resizeReplyField = () => {
     const el = replyFieldRef.current;
@@ -84,6 +84,14 @@ export default function CardPage() {
   useEffect(() => {
     resizeReplyField();
   }, [replyInput]);
+
+  useEffect(
+    () => () => {
+      pendingTimeoutsRef.current.forEach((id) => clearTimeout(id));
+      pendingTimeoutsRef.current = [];
+    },
+    []
+  );
 
   const card = useMemo(() => getCardById(params?.id), [params?.id]);
   const hasContent = !!card?.hasContent;
@@ -123,11 +131,9 @@ export default function CardPage() {
     const text = replyInput.trim();
     if (!text) return;
     setReplyInput("");
-    setMessages((prev) => [...prev, { role: "user", text }]);
+    appendMessage("user", text);
     const reply = getFakeReply();
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
-    }, THINKING_DELAY_MS);
+    scheduleTimeout(() => appendMessage("assistant", reply), THINKING_DELAY_MS);
   };
 
   const handleReplyKeyDown = (e) => {
@@ -141,7 +147,7 @@ export default function CardPage() {
   const handleSaveItClick = () => {
     setSaveFlowActive(true);
     setSaveOptionsVisible(false);
-    setMessages((prev) => [...prev, { role: "assistant", text: "When do you want to save it to?" }]);
+    appendMessage("assistant", "When do you want to save it to?");
   };
 
   useEffect(() => {
@@ -171,11 +177,9 @@ export default function CardPage() {
   const handleVoiceClick = () => {
     if (isRecording) {
       setIsRecording(false);
-      setMessages((prev) => [...prev, { role: "user", text: "I said this with my voice." }]);
+      appendMessage("user", "I said this with my voice.");
       const reply = getFakeReply();
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
-      }, THINKING_DELAY_MS);
+      scheduleTimeout(() => appendMessage("assistant", reply), THINKING_DELAY_MS);
     } else {
       setIsRecording(true);
     }
@@ -188,12 +192,13 @@ export default function CardPage() {
   ];
 
   const handleSaveOptionClick = (option) => {
-    setMessages((prev) => [...prev, { role: "user", text: option.label }]);
+    appendMessage("user", option.label);
     setSaveFlowActive(false);
     setSaveOptionsVisible(false);
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { role: "assistant", text: `Saved it for you to ${option.replyText}.` }]);
-    }, THINKING_DELAY_MS);
+    scheduleTimeout(
+      () => appendMessage("assistant", `Saved it for you to ${option.replyText}.`),
+      THINKING_DELAY_MS
+    );
   };
 
   return (
@@ -343,7 +348,7 @@ export default function CardPage() {
               {messages.map((msg, i) =>
                 msg.role === "user" ? (
                   <div
-                    key={`user-${i}`}
+                    key={msg.id}
                     ref={i === messages.length - 1 ? lastMessageRef : undefined}
                     style={{
                       alignSelf: "flex-end",
@@ -382,7 +387,7 @@ export default function CardPage() {
                   </div>
                 ) : (
                   <div
-                    key={`assistant-${i}`}
+                    key={msg.id}
                     ref={i === messages.length - 1 ? lastMessageRef : undefined}
                     style={{ alignSelf: "flex-start", width: "100%" }}
                   >
@@ -428,7 +433,6 @@ export default function CardPage() {
                   </span>
                 </div>
               )}
-              <div ref={messagesEndRef} />
             </section>
 
             <div
