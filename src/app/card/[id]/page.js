@@ -7,6 +7,26 @@ import statusBarImage from "../../assets/Status bar.png";
 import TypewriterText from "../../components/TypewriterText";
 import { getCardById } from "../../components/cardContent";
 
+const ACTION_BUTTON_STYLE = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  flex: "1 1 0%",
+  height: 46,
+  borderRadius: 20,
+  background: "rgba(255, 255, 255, 0.8)",
+  color: "#423530",
+  fontFamily: "var(--font-din-rounded), sans-serif",
+  fontSize: 18,
+  fontStyle: "normal",
+  fontWeight: 600,
+  lineHeight: "98%",
+  letterSpacing: -0.36,
+  cursor: "pointer",
+  border: "none",
+};
+
 const BackIcon = (
   <svg width="10" height="17" viewBox="0 0 10 17" fill="none" xmlns="http://www.w3.org/2000/svg" className="block" aria-hidden>
     <path d="M0 8.47656C0 8.23242 0.0878906 8.00781 0.273438 7.83203L8.01758 0.253906C8.18359 0.0878906 8.39844 0 8.65234 0C9.16016 0 9.55078 0.380859 9.55078 0.888672C9.55078 1.13281 9.44336 1.35742 9.28711 1.52344L2.17773 8.47656L9.28711 15.4297C9.44336 15.5957 9.55078 15.8105 9.55078 16.0645C9.55078 16.5723 9.16016 16.9531 8.65234 16.9531C8.39844 16.9531 8.18359 16.8652 8.01758 16.6895L0.273438 9.12109C0.0878906 8.93555 0 8.7207 0 8.47656Z" fill="#423530" />
@@ -147,7 +167,11 @@ export default function CardPage() {
   const handleSaveItClick = () => {
     setSaveFlowActive(true);
     setSaveOptionsVisible(false);
-    appendMessage("assistant", "When do you want to save it to?");
+    appendMessage("user", "save it");
+    scheduleTimeout(
+      () => appendMessage("assistant", "When do you want to save it to?"),
+      THINKING_DELAY_MS
+    );
   };
 
   useEffect(() => {
@@ -200,6 +224,8 @@ export default function CardPage() {
       THINKING_DELAY_MS
     );
   };
+
+  const buttonsHidden = replyInput.length > 0 || saveFlowActive;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
@@ -256,21 +282,6 @@ export default function CardPage() {
                 aria-label="Back"
               >
                 {BackIcon}
-              </button>
-
-              <button
-                onClick={handleSaveItClick}
-                className="absolute right-6 top-6 flex items-center justify-center rounded-[20px] bg-white transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
-                style={{
-                  width: 46,
-                  height: 46,
-                  filter: "drop-shadow(0 4px 10px rgba(0, 0, 0, 0.05))",
-                }}
-                aria-label="Save it"
-              >
-                <svg width="11" height="17" viewBox="0 0 11 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                  <path d="M1.17188 16.6484C0.460938 16.6484 0 16.1562 0 15.375V2.39844C0 0.851562 0.84375 0 2.38281 0H8.39062C9.92969 0 10.7734 0.851562 10.7734 2.39844V15.375C10.7734 16.1562 10.3125 16.6484 9.60156 16.6484C9.14844 16.6484 8.85156 16.4453 8.25781 15.8594L5.44531 13.0625C5.41406 13.0312 5.35938 13.0312 5.32812 13.0625L2.52344 15.8594C1.92969 16.4375 1.625 16.6484 1.17188 16.6484ZM2 13.7031L4.78125 11.0156C5.1875 10.625 5.59375 10.625 5.99219 11.0156L8.77344 13.7031C8.86719 13.7969 8.97656 13.7656 8.97656 13.625V2.57031C8.97656 2.03906 8.73438 1.79688 8.20312 1.79688H2.57031C2.03906 1.79688 1.79688 2.03906 1.79688 2.57031V13.625C1.79688 13.7656 1.90625 13.7969 2 13.7031Z" fill="#423530"/>
-                </svg>
               </button>
 
               <div className="w-full flex flex-col items-center justify-center pt-2">
@@ -443,6 +454,63 @@ export default function CardPage() {
                 bottom: 48,
               }}
             >
+              <div style={{ display: "flex", gap: 4 }}>
+                <button
+                  type="button"
+                  className="transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97]"
+                  style={{
+                    ...ACTION_BUTTON_STYLE,
+                    transition: "transform 0.2s ease-out, opacity 0.25s ease",
+                    transitionDelay: buttonsHidden ? "0ms" : "0ms",
+                    opacity: buttonsHidden ? 0 : 1,
+                    pointerEvents: buttonsHidden ? "none" : "auto",
+                  }}
+                  onClick={() => {}}
+                  aria-label="Share it"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M9.4375 15.8594C8.69531 15.8594 8.375 15.3047 8.14844 14.5312L6.60938 9.25781L1.28125 7.69531C0.53125 7.47656 0 7.16406 0 6.42188C0 5.80469 0.484375 5.375 1.14062 5.125L14.0625 0.179688C14.375 0.0625 14.6562 0 14.9062 0C15.4922 0 15.8672 0.375 15.8672 0.960938C15.8672 1.20312 15.7969 1.48438 15.6797 1.80469L10.7578 14.6797C10.4844 15.3906 10.0547 15.8594 9.4375 15.8594ZM7.14844 7.61719L10.8672 3.91406C11.3672 3.42188 12.0703 2.84375 12.6562 2.375C11.8438 2.74219 11.1719 3.05469 10.4922 3.32812L3.11719 6.17188C3.03906 6.20312 3.01562 6.24219 3.01562 6.28906C3.01562 6.33594 3.04688 6.36719 3.13281 6.39062L7.14844 7.61719ZM9.57812 12.8516C9.625 12.8516 9.66406 12.8203 9.6875 12.7344L12.5391 5.375C12.8047 4.67969 13.125 4.00781 13.4922 3.19531C13.0391 3.77344 12.4219 4.51562 11.9453 5L8.24219 8.71875L9.47656 12.7266C9.5 12.8125 9.53125 12.8516 9.57812 12.8516Z" fill="#423530"/>
+                  </svg>
+                  Share it
+                </button>
+                <button
+                  type="button"
+                  className="transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97]"
+                  style={{
+                    ...ACTION_BUTTON_STYLE,
+                    transition: "transform 0.2s ease-out, opacity 0.25s ease",
+                    transitionDelay: buttonsHidden ? "80ms" : "0ms",
+                    opacity: buttonsHidden ? 0 : 1,
+                    pointerEvents: buttonsHidden ? "none" : "auto",
+                  }}
+                  onClick={() => {}}
+                  aria-label="Remix it"
+                >
+                  <svg width="14" height="17" viewBox="0 0 14 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M6.69531 16.2812C3 16.2812 0 13.2812 0 9.58594C0 5.88281 3 2.89062 6.69531 2.89062C6.94531 2.89062 7.19531 2.90625 7.4375 2.92969L5.92969 1.48438C5.76562 1.33594 5.6875 1.14062 5.6875 0.898438C5.6875 0.398438 6.07031 0 6.55469 0C6.80469 0 7 0.09375 7.16406 0.265625L10.1875 3.33594C10.3672 3.51562 10.4688 3.75 10.4688 3.98438C10.4688 4.23438 10.375 4.45312 10.1875 4.64062L7.16406 7.69531C7.00781 7.85156 6.80469 7.94531 6.55469 7.94531C6.07031 7.94531 5.6875 7.55469 5.6875 7.0625C5.6875 6.82031 5.77344 6.63281 5.92969 6.47656L7.65625 4.77344C7.34375 4.71094 7.02344 4.67969 6.69531 4.67969C3.99219 4.67969 1.80469 6.875 1.80469 9.57812C1.80469 12.2812 3.99219 14.4766 6.69531 14.4766C9.40625 14.4766 11.5938 12.2812 11.5938 9.57812C11.5938 9.08594 12 8.67969 12.5 8.67969C12.9922 8.67969 13.3984 9.08594 13.3984 9.57812C13.3984 13.2812 10.3984 16.2812 6.69531 16.2812Z" fill="#423530"/>
+                  </svg>
+                  Remix it
+                </button>
+                <button
+                  type="button"
+                  className="transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97]"
+                  style={{
+                    ...ACTION_BUTTON_STYLE,
+                    transition: "transform 0.2s ease-out, opacity 0.25s ease",
+                    transitionDelay: buttonsHidden ? "160ms" : "0ms",
+                    opacity: buttonsHidden ? 0 : 1,
+                    pointerEvents: buttonsHidden ? "none" : "auto",
+                  }}
+                  onClick={handleSaveItClick}
+                  aria-label="Save it"
+                >
+                  <svg width="11" height="17" viewBox="0 0 11 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M1.17188 16.6484C0.460938 16.6484 0 16.1562 0 15.375V2.39844C0 0.851562 0.84375 0 2.38281 0H8.39062C9.92969 0 10.7734 0.851562 10.7734 2.39844V15.375C10.7734 16.1562 10.3125 16.6484 9.60156 16.6484C9.14844 16.6484 8.85156 16.4453 8.25781 15.8594L5.44531 13.0625C5.41406 13.0312 5.35938 13.0312 5.32812 13.0625L2.52344 15.8594C1.92969 16.4375 1.625 16.6484 1.17188 16.6484ZM2 13.7031L4.78125 11.0156C5.1875 10.625 5.59375 10.625 5.99219 11.0156L8.77344 13.7031C8.86719 13.7969 8.97656 13.7656 8.97656 13.625V2.57031C8.97656 2.03906 8.73438 1.79688 8.20312 1.79688H2.57031C2.03906 1.79688 1.79688 2.03906 1.79688 2.57031V13.625C1.79688 13.7656 1.90625 13.7969 2 13.7031Z" fill="#423530"/>
+                  </svg>
+                  Save it
+                </button>
+              </div>
+
               {saveFlowActive && saveOptionsVisible && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
                   {SAVE_OPTIONS.map((option) => (

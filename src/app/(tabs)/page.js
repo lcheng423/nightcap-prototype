@@ -583,58 +583,20 @@ export default function HomePage() {
                             >
                               {cardData.body}
                             </div>
-                            {cardData.label === "Awareness" ? (
-                              <button
-                                type="button"
-                                style={{
-                                  display: "flex",
-                                  padding: "10px 12px",
-                                  justifyContent: "center",
-                                  alignItems: "center",
-                                  gap: 4,
-                                  alignSelf: "stretch",
-                                  borderRadius: 16,
-                                  background: "#FFF",
-                                  border: "none",
-                                  marginTop: "auto",
-                                  cursor: "pointer",
-                                }}
-                                aria-label="Reflect"
-                              >
-                                <svg width="13" height="17" viewBox="0 0 13 17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                                  <path d="M3.0835 7.35352V3.14209C3.0835 1.30371 4.34326 0 6.07178 0C7.79297 0 9.06006 1.30371 9.06006 3.14209V7.35352C9.06006 9.20654 7.79297 10.4956 6.07178 10.4956C4.34326 10.4956 3.0835 9.20654 3.0835 7.35352ZM5.09766 7.43408C5.09766 8.10059 5.44189 8.64258 6.07178 8.64258C6.70166 8.64258 7.0459 8.10059 7.0459 7.43408V3.06152C7.0459 2.40234 6.70166 1.86035 6.07178 1.86035C5.44189 1.86035 5.09766 2.40967 5.09766 3.06152V7.43408ZM2.67334 16.3257C2.13135 16.3257 1.6626 15.8789 1.6626 15.3516C1.6626 14.8096 2.13135 14.3774 2.67334 14.3774H5.1416V13.4619C2.17529 13.103 0 11.001 0 7.80762V6.51855C0 5.98389 0.446777 5.57373 0.98877 5.57373C1.53809 5.57373 1.99219 5.98389 1.99219 6.51855V7.7417C1.99219 10.1001 3.73535 11.6235 6.07178 11.6235C8.4082 11.6235 10.1514 10.1001 10.1514 7.7417V6.51855C10.1514 5.98389 10.6055 5.57373 11.1475 5.57373C11.6968 5.57373 12.1436 5.98389 12.1436 6.51855V7.80762C12.1436 11.001 9.96826 13.103 6.99463 13.4619V14.3774H9.47021C10.0122 14.3774 10.4736 14.8096 10.4736 15.3516C10.4736 15.8789 10.0122 16.3257 9.47021 16.3257H2.67334Z" fill="#423530" />
-                                </svg>
-                                <span
-                                  style={{
-                                    color: "#423530",
-                                    textAlign: "center",
-                                    fontFamily: "var(--font-din-rounded), sans-serif",
-                                    fontSize: 16,
-                                    fontStyle: "normal",
-                                    fontWeight: 600,
-                                    lineHeight: "normal",
-                                    letterSpacing: -0.32,
-                                  }}
-                                >
-                                  Reflect
-                                </span>
-                              </button>
-                            ) : (
-                              <div
-                                style={{
-                                  color: "#423530",
-                                  fontFamily: "var(--font-din-rounded), sans-serif",
-                                  fontSize: 12,
-                                  fontStyle: "normal",
-                                  fontWeight: 600,
-                                  lineHeight: "98%",
-                                  letterSpacing: -0.24,
-                                  marginTop: "auto",
-                                }}
-                              >
-                                {cardData.label}
-                              </div>
-                            )}
+                            <div
+                              style={{
+                                color: "#423530",
+                                fontFamily: "var(--font-din-rounded), sans-serif",
+                                fontSize: 12,
+                                fontStyle: "normal",
+                                fontWeight: 600,
+                                lineHeight: "98%",
+                                letterSpacing: -0.24,
+                                marginTop: "auto",
+                              }}
+                            >
+                              {cardData.label}
+                            </div>
                           </>
                         )}
                       </div>
