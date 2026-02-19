@@ -583,20 +583,58 @@ export default function HomePage() {
                             >
                               {cardData.body}
                             </div>
-                            <div
-                              style={{
-                                color: "#423530",
-                                fontFamily: "var(--font-din-rounded), sans-serif",
-                                fontSize: 12,
-                                fontStyle: "normal",
-                                fontWeight: 600,
-                                lineHeight: "98%",
-                                letterSpacing: -0.24,
-                                marginTop: "auto",
-                              }}
-                            >
-                              {cardData.label}
-                            </div>
+                            {cardData.label === "Awareness" ? (
+                              <button
+                                type="button"
+                                style={{
+                                  display: "flex",
+                                  padding: "10px 12px",
+                                  justifyContent: "center",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  alignSelf: "stretch",
+                                  borderRadius: 16,
+                                  background: "#FFF",
+                                  border: "none",
+                                  marginTop: "auto",
+                                  cursor: "pointer",
+                                }}
+                                aria-label="Reflect"
+                              >
+                                <svg width="12" height="14" viewBox="0 0 26 29" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                                  <path d="M10.3385 28.1768C9.64838 28.1768 9.11453 27.6299 9.11453 26.9528V1.23665C9.11453 0.559569 9.64838 -0.000326641 10.3385 -0.000326641C11.0416 -0.000326641 11.5755 0.559569 11.5755 1.23665V26.9528C11.5755 27.6299 11.0416 28.1768 10.3385 28.1768ZM19.4661 25.3252C18.763 25.3252 18.2291 24.7653 18.2291 24.0882V4.10124C18.2291 3.42415 18.763 2.85124 19.4661 2.85124C20.1562 2.85124 20.7031 3.42415 20.7031 4.10124V24.0882C20.7031 24.7653 20.1562 25.3252 19.4661 25.3252ZM5.78119 23.2549C5.09109 23.2549 4.55724 22.708 4.55724 22.0179V6.15853C4.55724 5.48144 5.09109 4.92155 5.78119 4.92155C6.48432 4.92155 7.01817 5.48144 7.01817 6.15853V22.0179C7.01817 22.708 6.48432 23.2549 5.78119 23.2549ZM14.9088 21.484C14.2057 21.484 13.6718 20.9502 13.6718 20.2601V7.91634C13.6718 7.23926 14.2057 6.67936 14.9088 6.67936C15.5989 6.67936 16.1458 7.23926 16.1458 7.91634V20.2601C16.1458 20.9502 15.5989 21.484 14.9088 21.484ZM24.0234 19.0101C23.3203 19.0101 22.7994 18.4632 22.7994 17.7731V10.4033C22.7994 9.72624 23.3203 9.16634 24.0234 9.16634C24.7135 9.16634 25.2604 9.72624 25.2604 10.4033V17.7731C25.2604 18.4632 24.7135 19.0101 24.0234 19.0101ZM1.2239 17.7731C0.533798 17.7731 -5.61085e-05 17.2132 -5.61085e-05 16.5361V11.6533C-5.61085e-05 10.9632 0.533798 10.4033 1.2239 10.4033C1.91401 10.4033 2.46088 10.9632 2.46088 11.6533V16.5361C2.46088 17.2132 1.91401 17.7731 1.2239 17.7731Z" fill="#423530" />
+                                </svg>
+                                <span
+                                  style={{
+                                    color: "#423530",
+                                    textAlign: "center",
+                                    fontFamily: "var(--font-din-rounded), sans-serif",
+                                    fontSize: 16,
+                                    fontStyle: "normal",
+                                    fontWeight: 600,
+                                    lineHeight: "normal",
+                                    letterSpacing: -0.32,
+                                  }}
+                                >
+                                  Reflect
+                                </span>
+                              </button>
+                            ) : (
+                              <div
+                                style={{
+                                  color: "#423530",
+                                  fontFamily: "var(--font-din-rounded), sans-serif",
+                                  fontSize: 12,
+                                  fontStyle: "normal",
+                                  fontWeight: 600,
+                                  lineHeight: "98%",
+                                  letterSpacing: -0.24,
+                                  marginTop: "auto",
+                                }}
+                              >
+                                {cardData.label}
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
