@@ -18,7 +18,7 @@
 </script>
 
 <nav class="bottom-nav" style="position:absolute; bottom:40px; left:24px; right:24px; z-index:10; display:flex; justify-content:space-between; align-items:center; pointer-events:none;">
-  <div style="display:inline-flex; height:72px; padding:0 4px; justify-content:center; align-items:center; gap:2px; border-radius:28px; background:#F7F0E1; box-shadow:0 4px 20px 0 rgba(0,0,0,0.15); pointer-events:auto; position:relative;">
+  <div style="display:inline-flex; height:72px; padding:0 4px; justify-content:center; align-items:center; gap:2px; border-radius:28px; border:1px solid rgba(0,0,0,0.10); background:#F7F0E1; box-shadow:0 4px 20px 0 rgba(0,0,0,0.15); pointer-events:auto; position:relative;">
     <div style={`position:absolute; top:50%; left:4px; width:64px; height:64px; margin-top:-32px; border-radius:24px; background:${NAV_ACTIVE_BG}; transition:transform 300ms cubic-bezier(0.34,1.28,0.64,1); transform:translateX(${targetOffset}px); z-index:0;`}></div>
 
     <a href="/" style="display:flex; width:64px; height:64px; padding:0 27px; flex-direction:column; justify-content:center; align-items:center; gap:4px; border-radius:24px; text-decoration:none; position:relative; z-index:1;">
@@ -43,7 +43,7 @@
     </a>
   </div>
 
-  <button class="nav-plus-btn" style="display:flex; width:72px; height:72px; padding:18px; justify-content:center; align-items:center; border-radius:28px; background:#F7F0E1; box-shadow:0 4px 20px 0 rgba(0,0,0,0.15); pointer-events:auto;" aria-label="Create new">
+  <button class="nav-plus-btn" style="display:flex; width:72px; height:72px; padding:18px; justify-content:center; align-items:center; border-radius:28px; border:1px solid rgba(0,0,0,0.10); background:#F7F0E1; box-shadow:0 4px 20px 0 rgba(0,0,0,0.15); pointer-events:auto;" aria-label="Create new">
     <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M1.39062 14.2812C0.640625 14.2812 0 13.6562 0 12.8906C0 12.125 0.640625 11.4844 1.39062 11.4844H11.5V1.39062C11.5 0.640625 12.125 0 12.8906 0C13.6562 0 14.2969 0.640625 14.2969 1.39062V11.4844H24.3906C25.1406 11.4844 25.7812 12.125 25.7812 12.8906C25.7812 13.6562 25.1406 14.2812 24.3906 14.2812H14.2969V24.3906C14.2969 25.1406 13.6562 25.7812 12.8906 25.7812C12.125 25.7812 11.5 25.1406 11.5 24.3906V14.2812H1.39062Z" fill="#423530" />
     </svg>
