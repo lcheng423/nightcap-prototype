@@ -2,16 +2,12 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useCardExpand } from "../components/CardExpandContext";
+import { CARD_CONTENT, CARD_IDS } from "../components/cardContent";
+import HomeScoresRow from "../components/HomeScoresRow";
 
 const REFLECTION_STATE_KEY = "reflectionState";
 const HAS_VIEWED_INSIGHT_KEY = "hasViewedInsight";
-const FIRST_LOAD_COMPLETE_KEY = "nightcap_hasCompletedFirstLoad";
-
-const WELCOME_TEXT = "Morning, Courtney!";
-const CARD_ENTER_STAGGER_S = 0.0875;
-const FIRST_LOAD_TYPED_MESSAGE = "Here are some ideas for who you're becoming. Save one to start your day";
-const TYPEWRITER_MS = 11;
 
 const LONG_PRESS_MS = 400;
 const CELL_W = 189 + 8;
@@ -26,24 +22,11 @@ const EXPAND_TRANSITION = ["top", "left", "width", "height", "border-radius", "p
   .map((p) => `${p} ${EXPAND_MS}ms ${EXPAND_EASE}`)
   .join(", ");
 
-const backIcon = (
-  <svg width="10" height="17" viewBox="0 0 10 17" fill="none" xmlns="http://www.w3.org/2000/svg" className="block" aria-hidden>
-    <path d="M0 8.47656C0 8.23242 0.0878906 8.00781 0.273438 7.83203L8.01758 0.253906C8.18359 0.0878906 8.39844 0 8.65234 0C9.16016 0 9.55078 0.380859 9.55078 0.888672C9.55078 1.13281 9.44336 1.35742 9.28711 1.52344L2.17773 8.47656L9.28711 15.4297C9.44336 15.5957 9.55078 15.8105 9.55078 16.0645C9.55078 16.5723 9.16016 16.9531 8.65234 16.9531C8.39844 16.9531 8.18359 16.8652 8.01758 16.6895L0.273438 9.12109C0.0878906 8.93555 0 8.7207 0 8.47656Z" fill="#423530" />
-  </svg>
-);
-
-function TypewriterText({ text }) {
-  return text.split("").map((char, i) =>
-    char === "\n" ? <br key={i} /> : <span key={i} className="typewriter-letter">{char}</span>
-  );
-}
-
-
 export default function HomePage() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [hasReflectionInProgress, setHasReflectionInProgress] = useState(false);
   const [hasViewedInsight, setHasViewedInsight] = useState(false);
-  const [order, setOrder] = useState([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  const [order, setOrder] = useState(CARD_IDS);
   const [longPressedCardIndex, setLongPressedCardIndex] = useState(null);
   const [draggingSlot, setDraggingSlot] = useState(null);
   const [heldCardId, setHeldCardId] = useState(null);
@@ -56,10 +39,6 @@ export default function HomePage() {
   const [arrivalOffset, setArrivalOffset] = useState({ x: 0, y: 0 });
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const [expandingCard, setExpandingCard] = useState(null);
-  const [isFirstTimeLoading, setIsFirstTimeLoading] = useState(true);
-  const [firstLoadPhase, setFirstLoadPhase] = useState("welcome");
-  const [welcomeTypedLength, setWelcomeTypedLength] = useState(0);
-  const [instructionTypedLength, setInstructionTypedLength] = useState(0);
   const longPressTimerRef = useRef(null);
   const router = useRouter();
   const frameRef = useRef(null);
@@ -71,64 +50,17 @@ export default function HomePage() {
   const expandNavTimerRef = useRef(null);
   const pullStartRef = useRef(null);
   const [pullOffset, setPullOffset] = useState({ x: 0, y: 0 });
+  const { setCardExpanded, onCardBackRef } = useCardExpand();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       setHasReflectionInProgress(!!localStorage.getItem(REFLECTION_STATE_KEY));
       setHasViewedInsight(!!sessionStorage.getItem(HAS_VIEWED_INSIGHT_KEY));
-      setIsFirstTimeLoading(!sessionStorage.getItem(FIRST_LOAD_COMPLETE_KEY));
     } catch (_) {
       /* ignore */
     }
   }, []);
-
-  /* Phase: welcome – type out "Welcome, Courtney" */
-  useEffect(() => {
-    if (!isFirstTimeLoading || firstLoadPhase !== "welcome") return;
-    let intervalId = null;
-    intervalId = setInterval(() => {
-      setWelcomeTypedLength((n) => {
-        if (n >= WELCOME_TEXT.length) {
-          if (intervalId) clearInterval(intervalId);
-          return n;
-        }
-        return n + 1;
-      });
-    }, TYPEWRITER_MS);
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [isFirstTimeLoading, firstLoadPhase]);
-
-  useEffect(() => {
-    if (!isFirstTimeLoading || firstLoadPhase !== "welcome" || welcomeTypedLength < WELCOME_TEXT.length) return;
-    setFirstLoadPhase("instruction");
-  }, [isFirstTimeLoading, firstLoadPhase, welcomeTypedLength]);
-
-  /* Phase: instruction – type out save instruction */
-  useEffect(() => {
-    if (!isFirstTimeLoading || firstLoadPhase !== "instruction") return;
-    let intervalId = null;
-    intervalId = setInterval(() => {
-      setInstructionTypedLength((n) => {
-        if (n >= FIRST_LOAD_TYPED_MESSAGE.length) {
-          if (intervalId) clearInterval(intervalId);
-          return n;
-        }
-        return n + 1;
-      });
-    }, TYPEWRITER_MS);
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [isFirstTimeLoading, firstLoadPhase]);
-
-  useEffect(() => {
-    if (!isFirstTimeLoading || firstLoadPhase !== "instruction" || instructionTypedLength < FIRST_LOAD_TYPED_MESSAGE.length) return;
-    setFirstLoadPhase("cardsEnter");
-    try { sessionStorage.setItem(FIRST_LOAD_COMPLETE_KEY, "1"); } catch (_) { /* ignore */ }
-  }, [isFirstTimeLoading, firstLoadPhase, instructionTypedLength]);
 
   useEffect(() => {
     return () => {
@@ -272,6 +204,7 @@ export default function HomePage() {
   /* Back from expanded card view — pullXY is {x,y} where the user released (null if back button) */
   const dismissCard = useCallback((pullXY = null) => {
     if (!expandingCard || expandingCard.phase === "closing" || expandingCard.phase === "closing-start") return;
+    setCardExpanded(false);
     setPullOffset({ x: 0, y: 0 });
     pullStartRef.current = null;
     if (pullXY) {
@@ -282,15 +215,12 @@ export default function HomePage() {
       setExpandingCard((prev) => prev ? { ...prev, phase: "closing" } : null);
     }
     expandNavTimerRef.current = setTimeout(() => setExpandingCard(null), EXPAND_MS + 100);
-  }, [expandingCard]);
+  }, [expandingCard, setCardExpanded]);
 
-  const handleCardBack = useCallback(
-    (e) => {
-      e.preventDefault();
-      dismissCard();
-    },
-    [dismissCard]
-  );
+  useEffect(() => {
+    onCardBackRef.current = () => dismissCard();
+    return () => { onCardBackRef.current = null; };
+  }, [dismissCard, onCardBackRef]);
 
   /* Drag-to-dismiss on the expanded card (free movement in any direction) */
   const DISMISS_THRESHOLD = 100;
@@ -436,22 +366,10 @@ export default function HomePage() {
         const dx = Math.abs(e.clientX - tapStartRef.current.x);
         const dy = Math.abs(e.clientY - tapStartRef.current.y);
         if (dx < 10 && dy < 10) {
-          const mainEl = e.currentTarget.closest("main");
+          const contentEl = frameRef.current?.parentElement;
           const cardId = order[tapStartRef.current.slot];
-          if (mainEl) {
-            const cr = e.currentTarget.getBoundingClientRect();
-            const mr = mainEl.getBoundingClientRect();
-            const rect = {
-              top: Math.round(cr.top - mr.top),
-              left: Math.round(cr.left - mr.left),
-              width: Math.round(cr.width),
-              height: Math.round(cr.height),
-            };
-            setExpandingCard({ cardId, rect, phase: "mounting" });
-            /* Fallback: force open if transitionend doesn't fire */
-            expandNavTimerRef.current = setTimeout(() => {
-              setExpandingCard((prev) => prev && prev.phase === "expanding" ? { ...prev, phase: "open" } : prev);
-            }, EXPAND_MS + 100);
+          if (contentEl) {
+            router.push(`/card/${cardId}`);
           }
         }
       }
@@ -471,7 +389,7 @@ export default function HomePage() {
       setUnderCardScale(1);
       setUnderCardRotate(0);
     },
-    [order]
+    [order, router]
   );
 
   const handleCardPointerLeave = useCallback((e) => {
@@ -525,64 +443,15 @@ export default function HomePage() {
           className="flex flex-col w-full"
           style={{ paddingLeft: 24, paddingRight: 24 }}
         >
-          {/* Greeting: type out "Morning, Courtney!" then static */}
-          <h1
-            className="text-[#423530] mb-1"
-            style={{
-              width: "100%",
-              maxWidth: 342,
-              fontFamily: "var(--font-din-rounded), sans-serif",
-              fontSize: 32,
-              fontStyle: "normal",
-              fontWeight: 600,
-              lineHeight: "98%",
-              letterSpacing: -0.64,
-              minHeight: isFirstTimeLoading && firstLoadPhase === "welcome" ? "2.5em" : undefined,
-            }}
-          >
-            {isFirstTimeLoading && firstLoadPhase === "welcome" ? (
-              <TypewriterText text={WELCOME_TEXT.slice(0, welcomeTypedLength)} />
-            ) : (
-              <>Morning, Courtney!</>
-            )}
-          </h1>
-
-          {/* Subtitle: empty during welcome; loading strings; then type instruction; then static */}
-          <p
-            className="text-[#423530]"
-            style={{
-              width: "100%",
-              maxWidth: 342,
-              marginTop: 10,
-              fontFamily: "var(--font-din-rounded), sans-serif",
-              fontSize: 20,
-              fontStyle: "normal",
-              fontWeight: 600,
-              lineHeight: "98%",
-              letterSpacing: -0.4,
-              minHeight: isFirstTimeLoading && firstLoadPhase !== "welcome" ? "1.96em" : undefined,
-              overflow: isFirstTimeLoading ? "hidden" : undefined,
-            }}
-          >
-            {isFirstTimeLoading && firstLoadPhase === "instruction" ? (
-              <span className="block">
-                <TypewriterText text={FIRST_LOAD_TYPED_MESSAGE.slice(0, instructionTypedLength)} />
-              </span>
-            ) : isFirstTimeLoading && firstLoadPhase === "cardsEnter" ? (
-              <span className="block">{FIRST_LOAD_TYPED_MESSAGE}</span>
-            ) : (
-              <span className="block">{FIRST_LOAD_TYPED_MESSAGE}</span>
-            )}
-          </p>
+          <HomeScoresRow />
 
           {/* Card grid */}
           <div
             style={{
-              marginTop: (!isFirstTimeLoading || firstLoadPhase === "cardsEnter") ? 32 : 16,
+              marginTop: 8,
               marginLeft: -16,
               marginRight: -16,
               marginBottom: 36,
-              opacity: isFirstTimeLoading && (firstLoadPhase === "welcome" || firstLoadPhase === "instruction") ? 0 : 1,
             }}
           >
               <div
@@ -595,12 +464,8 @@ export default function HomePage() {
                   gridTemplateColumns: "189px 189px",
                 }}
               >
-              {isFirstTimeLoading && (firstLoadPhase === "welcome" || firstLoadPhase === "instruction") ? (
-                Array.from({ length: TOTAL_CARDS }, (_, i) => i).map((slotIndex) => (
-                  <div key={slotIndex} style={{ width: 189, height: 252 }} aria-hidden />
-                ))
-              ) : (
-              Array.from({ length: TOTAL_CARDS }, (_, i) => i).map((slotIndex) => {
+              {Array.from({ length: TOTAL_CARDS }, (_, i) => i).map((slotIndex) => {
+                const cardData = CARD_CONTENT.find((card) => card.id === order[slotIndex]);
                 const cardStyle = {
                   display: "flex",
                   padding: 24,
@@ -614,7 +479,6 @@ export default function HomePage() {
                   border: "1px solid rgba(0, 0, 0, 0.10)",
                   backgroundColor: "#F7F0E1",
                   boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.05)",
-                  ...(firstLoadPhase === "cardsEnter" ? { "--card-enter-delay": `${slotIndex * CARD_ENTER_STAGGER_S}s` } : { animationDelay: `${0.1 + slotIndex * 0.1}s` }),
                 };
                 const isHoverTarget = hoverSlot !== null && hoverSlot !== draggingSlot && slotIndex === hoverSlot;
                 const isPlaceholder = draggingSlot !== null && order[slotIndex] === heldCardId;
@@ -642,7 +506,7 @@ export default function HomePage() {
                       />
                     ) : isHoverTarget ? (
                       <div
-                        className={`home-card-fly-snap ${firstLoadPhase === "cardsEnter" ? "home-first-enter" : ""}`}
+                        className="home-card-fly-snap"
                         style={{
                           ...cardStyle,
                           transform: `scale(${underCardScale}) rotate(${underCardRotate}deg) translate(${underCardOffset.x}px, ${underCardOffset.y}px)`,
@@ -652,14 +516,81 @@ export default function HomePage() {
                       <div style={{ ...cardStyle, opacity: 0 }} aria-hidden />
                     ) : (
                       <div
-                        className={`cursor-pointer hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 ease-out ${firstLoadPhase === "cardsEnter" ? "home-first-enter" : ""}`}
+                        className="cursor-pointer hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 ease-out"
                         style={{ ...cardStyle, ...(isExpandingThis ? { opacity: 0 } : {}) }}
-                      />
+                      >
+                        {cardData?.hasContent && (
+                          <>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: "#423530",
+                                  fontFamily: '"SF Pro Rounded", sans-serif',
+                                  fontSize: 22,
+                                  fontStyle: "normal",
+                                  fontWeight: 600,
+                                  lineHeight: "normal",
+                                }}
+                              >
+                                {cardData.emoji}
+                              </span>
+                              <span
+                                style={{
+                                  color: "#423530",
+                                  fontFamily: "var(--font-din-rounded), sans-serif",
+                                  fontSize: 10,
+                                  fontStyle: "normal",
+                                  fontWeight: 700,
+                                  lineHeight: "normal",
+                                  letterSpacing: -0.2,
+                                  textTransform: "uppercase",
+                                }}
+                              >
+                                {cardData.threadName}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                overflow: "hidden",
+                                color: "#423530",
+                                whiteSpace: "normal",
+                                fontFamily: "var(--font-din-rounded), sans-serif",
+                                fontSize: 18,
+                                fontStyle: "normal",
+                                fontWeight: 600,
+                                lineHeight: "100%",
+                                letterSpacing: -0.36,
+                              }}
+                            >
+                              {cardData.body}
+                            </div>
+                            <div
+                              style={{
+                                color: "#423530",
+                                fontFamily: "var(--font-din-rounded), sans-serif",
+                                fontSize: 12,
+                                fontStyle: "normal",
+                                fontWeight: 600,
+                                lineHeight: "98%",
+                                letterSpacing: -0.24,
+                                marginTop: "auto",
+                              }}
+                            >
+                              {cardData.label}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     )}
                   </div>
                 );
-              })
-              )}
+              })}
               </div>
               {draggingSlot !== null && (
                 <div
@@ -721,59 +652,6 @@ export default function HomePage() {
           return <div className={blanketClass} style={blanketStyle} />;
         })()}
 
-        {/* Back button – appears once card is expanding, fades out on close or pull */}
-        {expandingCard && expandingCard.phase !== "mounting" && (() => {
-          const pullDist = Math.sqrt(pullOffset.x * pullOffset.x + pullOffset.y * pullOffset.y);
-          const pulling = pullDist > 0 && expandingCard.phase === "open";
-          const dismissXY = expandingCard.pullDismissXY;
-          const dismissDist = dismissXY ? Math.sqrt(dismissXY.x * dismissXY.x + dismissXY.y * dismissXY.y) : 0;
-          const closingFromPull = (expandingCard.phase === "closing" || expandingCard.phase === "closing-start") && dismissDist > 0;
-          const pullDismissOpacity = Math.max(0, 1 - dismissDist / 150);
-
-          let backClass = "absolute z-40";
-          let backStyle = { top: 54 + 24, left: 24 };
-
-          if (closingFromPull) {
-            if (expandingCard.phase === "closing-start") {
-              backStyle.opacity = pullDismissOpacity;
-              backStyle.transition = "none";
-            } else {
-              backStyle.opacity = 0;
-              backStyle.transition = `opacity ${EXPAND_MS}ms ${EXPAND_EASE}`;
-            }
-          } else if (pulling) {
-            backStyle.opacity = Math.max(0, 1 - pullDist / 150);
-            backStyle.transition = "none";
-          } else if (expandingCard.phase === "closing") {
-            backClass += " card-back-fade-out";
-          } else {
-            backClass += " card-back-fade-in";
-          }
-
-          return (
-          <div className={backClass} style={backStyle}>
-
-            <Link
-              href="/"
-              onClick={handleCardBack}
-              className="flex justify-center items-center transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
-              style={{
-                width: 48,
-                height: 48,
-                padding: "11.5px 13.8px",
-                aspectRatio: "1/1",
-                background: "rgba(255, 255, 255, 0.80)",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-                borderRadius: 20,
-              }}
-              aria-label="Back"
-            >
-              {backIcon}
-            </Link>
-          </div>
-          );
-        })()}
-
         {/* Card overlay: transitions between small card and expanded card */}
         {expandingCard && (() => {
           const atFinal = expandingCard.phase === "expanding" || expandingCard.phase === "open";
@@ -795,10 +673,10 @@ export default function HomePage() {
               style={{
                 position: "absolute",
                 zIndex: 30,
-                top: atFinal || isClosingStart ? 149 : expandingCard.rect.top,
+                top: atFinal || isClosingStart ? 0 : expandingCard.rect.top,
                 left: atFinal || isClosingStart ? 8 : expandingCard.rect.left,
                 width: atFinal || isClosingStart ? 386 : expandingCard.rect.width,
-                height: atFinal || isClosingStart ? 514.667 : expandingCard.rect.height,
+                height: atFinal || isClosingStart ? 664 : expandingCard.rect.height,
                 borderRadius: atFinal || isClosingStart ? 40 : 28,
                 padding: atFinal || isClosingStart ? 36 : 24,
                 transition: (pulling || expandingCard.phase === "mounting") ? "none" : EXPAND_TRANSITION,

@@ -9,8 +9,8 @@ const dinRounded = localFont({
 });
 
 export const metadata = {
-  title: "Reflection flow prototype",
-  description: "Reflection flow prototype",
+  title: "Nightcap",
+  description: "Nightcap prototype",
 };
 
 export default function RootLayout({ children }) {

@@ -1,12 +1,11 @@
 # Nightcap Prototype
 
-Prototype of a mobile-first reflection experience built with Next.js App Router.
+Mobile-first reflection prototype now migrated to SvelteKit.
 
 ## Tech Stack
 
-- Next.js 16 + React 19
-- Tailwind CSS 4
-- ESLint 9 (`eslint-config-next`)
+- SvelteKit 2 + Svelte 5
+- Vite 5
 
 ## Run Locally
 
@@ -15,19 +14,21 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:5173`.
 
 ## Scripts
 
 - `npm run dev` - start development server
 - `npm run build` - build for production
-- `npm run start` - run production build
-- `npm run lint` - run ESLint
+- `npm run preview` - run production preview server
+- `npm run check` - run `svelte-check`
 
 ## Project Structure
 
-- `src/app/(tabs)` - tab shell and tab pages (`/`, `/today`, `/threads`)
-- `src/app/reflection` - evening reflection flow
-- `src/app/insight` - insight reveal screen
-- `src/app/card/[id]` - card detail animation route
-- `src/app/components` - shared UI pieces (`TopBar`, `NavBar`)
+- `/src/routes/(tabs)` - tab shell and tab pages (`/`, `/today`, `/threads`)
+- `/src/routes/reflection` - reflection flow
+- `/src/routes/insight` - insight reveal screen
+- `/src/routes/card/[id]` - card detail route
+- `/src/routes/score/[slug]` - score detail route
+- `/src/lib/components` - shared Svelte UI components
+- `/src/lib/data` - shared route data

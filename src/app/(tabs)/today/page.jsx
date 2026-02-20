@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CARD_CONTENT, CARD_IDS, getCardById } from "../../components/cardContent";
 
 function getWeekDates() {
   const now = new Date();
@@ -21,7 +23,8 @@ function getWeekDates() {
   return { days, todayIndex };
 }
 
-const CARD_COUNT = 8;
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const LONG_PRESS_MS = 280;
 const DAY_COUNT = 7;
 const WEEK_SCROLLER_GAP = 4;
 const SWIPE_LOCK_DISTANCE = 8;
@@ -42,10 +45,17 @@ const cardStyle = {
 };
 
 export default function TodayPage() {
+  const router = useRouter();
   const { days: week, todayIndex } = getWeekDates();
   const [activeIndex, setActiveIndex] = useState(todayIndex);
+  const [dayCardOrders, setDayCardOrders] = useState(
+    Array.from({ length: DAY_COUNT }, () => [...CARD_IDS])
+  );
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [draggingCard, setDraggingCard] = useState(null);
+  const [dragHoverIndex, setDragHoverIndex] = useState(null);
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const [scrollY, setScrollY] = useState(0);
   const scrollRef = useRef(null);
   const carouselRef = useRef(null);
@@ -69,8 +79,23 @@ export default function TodayPage() {
     deltaY: 0,
     lockedAxis: null,
     hasChangedDay: false,
+    lastClientY: 0,
+    velY: 0,
+    lastT: 0,
   });
+  const cardLongPressRef = useRef(null);
+  const cardPointerStartRef = useRef(null);
+  const dragRef = useRef({
+    active: false,
+    sourceDay: null,
+    sourceIndex: null,
+    targetDay: null,
+    targetIndex: null,
+  });
+  const crossDayTimerRef = useRef(null);
 
+  const dayDiff = activeIndex - todayIndex;
+  const dayTitle = dayDiff === 0 ? "Today" : dayDiff === -1 ? "Yesterday" : dayDiff === 1 ? "Tomorrow" : DAY_NAMES[activeIndex];
   const indicatorBg = week[activeIndex]?.isToday ? "#DA5F3D" : "#423530";
   const titleFadeDistance = 56;
   const titleOpacity = Math.max(0, 1 - scrollY / titleFadeDistance);
@@ -114,11 +139,16 @@ export default function TodayPage() {
   };
 
   useEffect(() => {
-    return () => stopScrollMomentum();
+    return () => {
+      stopScrollMomentum();
+      if (cardLongPressRef.current) clearTimeout(cardLongPressRef.current);
+      if (crossDayTimerRef.current) clearTimeout(crossDayTimerRef.current);
+    };
   }, []);
 
   const handleScrollDragPointerDown = (e) => {
     if (e.target.closest("button")) return;
+    if (e.target.closest("[data-carousel-swipe]")) return;
     const el = scrollRef.current;
     if (!el) return;
     stopScrollMomentum();
@@ -181,6 +211,7 @@ export default function TodayPage() {
   };
 
   const handleCarouselPointerDown = (e) => {
+    if (dragRef.current.active) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
     swipeRef.current = {
       active: true,
@@ -191,12 +222,17 @@ export default function TodayPage() {
       deltaY: 0,
       lockedAxis: null,
       hasChangedDay: false,
+      lastClientY: e.clientY,
+      velY: 0,
+      lastT: Date.now(),
     };
+    stopScrollMomentum();
     setDragOffset(0);
     setIsDragging(false);
   };
 
   const handleCarouselPointerMove = (e) => {
+    if (dragRef.current.active) return;
     const swipe = swipeRef.current;
     if (!swipe.active || swipe.pointerId !== e.pointerId) return;
 
@@ -211,20 +247,37 @@ export default function TodayPage() {
     }
 
     if (swipe.lockedAxis === "x") {
-      // Horizontal drag should control day paging; keep vertical scroll untouched otherwise.
       e.preventDefault();
       setIsDragging(true);
       const atStart = activeIndex === 0 && swipe.deltaX > 0;
       const atEnd = activeIndex === DAY_COUNT - 1 && swipe.deltaX < 0;
       const resistedDelta = atStart || atEnd ? swipe.deltaX * 0.35 : swipe.deltaX;
       setDragOffset(resistedDelta);
+    } else if (swipe.lockedAxis === "y") {
+      const el = scrollRef.current;
+      if (el) {
+        el.scrollTop -= e.clientY - swipe.lastClientY;
+      }
+      const now = Date.now();
+      const dt = now - swipe.lastT;
+      if (dt > 0) {
+        swipe.velY = ((e.clientY - swipe.lastClientY) / dt) * 16;
+      }
+      swipe.lastClientY = e.clientY;
+      swipe.lastT = now;
     }
   };
 
   const handleCarouselPointerEnd = (e) => {
+    if (dragRef.current.active) return;
     const swipe = swipeRef.current;
     if (!swipe.active || swipe.pointerId !== e.pointerId) return;
     e.currentTarget.releasePointerCapture?.(e.pointerId);
+
+    if (swipe.lockedAxis === "y" && Math.abs(swipe.velY) > MOMENTUM_MIN_VELOCITY) {
+      scrollDragRef.current.velY = swipe.velY;
+      startScrollMomentum();
+    }
 
     const absX = Math.abs(swipe.deltaX);
     const absY = Math.abs(swipe.deltaY);
@@ -256,7 +309,172 @@ export default function TodayPage() {
       deltaY: 0,
       lockedAxis: null,
       hasChangedDay: false,
+      lastClientY: 0,
+      velY: 0,
+      lastT: 0,
     };
+  };
+
+  const stopCrossDayTimer = () => {
+    if (crossDayTimerRef.current) {
+      clearTimeout(crossDayTimerRef.current);
+      crossDayTimerRef.current = null;
+    }
+  };
+
+  const scheduleCrossDayShift = (direction) => {
+    if (crossDayTimerRef.current) return;
+    crossDayTimerRef.current = setTimeout(() => {
+      setActiveIndex((prev) => {
+        const next = Math.max(0, Math.min(DAY_COUNT - 1, prev + direction));
+        dragRef.current.targetDay = next;
+        return next;
+      });
+      crossDayTimerRef.current = null;
+    }, 260);
+  };
+
+  const handleCardPointerDown = (e, dayIndex, cardIndex, cardId) => {
+    if (cardLongPressRef.current) clearTimeout(cardLongPressRef.current);
+    cardPointerStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      dayIndex,
+      cardIndex,
+      cardId,
+      pointerId: e.pointerId,
+    };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    e.stopPropagation();
+    cardLongPressRef.current = setTimeout(() => {
+      dragRef.current = {
+        active: true,
+        sourceDay: dayIndex,
+        sourceIndex: cardIndex,
+        targetDay: dayIndex,
+        targetIndex: cardIndex,
+      };
+      setDraggingCard({ id: cardId, dayIndex, cardIndex });
+      setDragHoverIndex(cardIndex);
+      setDragPosition({ x: e.clientX, y: e.clientY });
+    }, LONG_PRESS_MS);
+  };
+
+  const handleCardPointerMove = (e) => {
+    if (cardPointerStartRef.current && !dragRef.current.active) {
+      const dx = Math.abs(e.clientX - cardPointerStartRef.current.x);
+      const dy = Math.abs(e.clientY - cardPointerStartRef.current.y);
+      if (dx > 8 || dy > 8) {
+        if (cardLongPressRef.current) {
+          clearTimeout(cardLongPressRef.current);
+          cardLongPressRef.current = null;
+        }
+      }
+    }
+    if (!dragRef.current.active) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    setDragPosition({ x: e.clientX, y: e.clientY });
+
+    const cardEl = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-today-card-index]");
+    if (cardEl) {
+      const hoverIndex = Number(cardEl.getAttribute("data-today-card-index"));
+      if (!Number.isNaN(hoverIndex)) {
+        setDragHoverIndex(hoverIndex);
+        dragRef.current.targetIndex = hoverIndex;
+      }
+    }
+
+    const carouselRect = carouselRef.current?.getBoundingClientRect();
+    if (carouselRect) {
+      const edgeZone = 36;
+      if (e.clientX < carouselRect.left + edgeZone && activeIndex > 0) {
+        scheduleCrossDayShift(-1);
+      } else if (e.clientX > carouselRect.right - edgeZone && activeIndex < DAY_COUNT - 1) {
+        scheduleCrossDayShift(1);
+      } else {
+        stopCrossDayTimer();
+      }
+    }
+  };
+
+  const handleCardPointerUp = (e) => {
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    stopCrossDayTimer();
+
+    if (cardLongPressRef.current) {
+      clearTimeout(cardLongPressRef.current);
+      cardLongPressRef.current = null;
+    }
+
+    const start = cardPointerStartRef.current;
+    if (start && !dragRef.current.active) {
+      const dx = Math.abs(e.clientX - start.x);
+      const dy = Math.abs(e.clientY - start.y);
+      if (dx < 10 && dy < 10) {
+        router.push(`/card/${start.cardId}`);
+      }
+      cardPointerStartRef.current = null;
+      return;
+    }
+
+    if (!dragRef.current.active || !draggingCard) {
+      cardPointerStartRef.current = null;
+      return;
+    }
+
+    setDayCardOrders((prev) => {
+      const next = prev.map((list) => [...list]);
+      const sourceDay = dragRef.current.sourceDay;
+      const sourceIndex = dragRef.current.sourceIndex;
+      const targetDay = dragRef.current.targetDay ?? activeIndex;
+      const sourceList = Number.isInteger(sourceDay) && sourceDay >= 0 && sourceDay < next.length ? next[sourceDay] : null;
+      const targetList = Number.isInteger(targetDay) && targetDay >= 0 && targetDay < next.length ? next[targetDay] : null;
+      if (!sourceList || !targetList || !Number.isInteger(sourceIndex) || sourceIndex < 0 || sourceIndex >= sourceList.length) {
+        return prev;
+      }
+      const [moved] = sourceList.splice(sourceIndex, 1);
+      let targetIndex = dragRef.current.targetIndex;
+      if (targetDay !== sourceDay) {
+        targetIndex = Number.isInteger(targetIndex) && targetIndex >= 0 ? targetIndex : targetList.length;
+      } else if (Number.isInteger(targetIndex) && targetIndex > sourceIndex) {
+        targetIndex -= 1;
+      }
+      const safeIndex = Math.max(0, Math.min(targetList.length, Number.isInteger(targetIndex) && targetIndex >= 0 ? targetIndex : targetList.length));
+      targetList.splice(safeIndex, 0, moved);
+      return next;
+    });
+
+    dragRef.current = {
+      active: false,
+      sourceDay: null,
+      sourceIndex: null,
+      targetDay: null,
+      targetIndex: null,
+    };
+    cardPointerStartRef.current = null;
+    setDraggingCard(null);
+    setDragHoverIndex(null);
+  };
+
+  const handleCardPointerCancel = (e) => {
+    if (cardLongPressRef.current) {
+      clearTimeout(cardLongPressRef.current);
+      cardLongPressRef.current = null;
+    }
+    stopCrossDayTimer();
+    dragRef.current = {
+      active: false,
+      sourceDay: null,
+      sourceIndex: null,
+      targetDay: null,
+      targetIndex: null,
+    };
+    cardPointerStartRef.current = null;
+    setDraggingCard(null);
+    setDragHoverIndex(null);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
   };
 
   return (
@@ -285,7 +503,7 @@ export default function TodayPage() {
             transition: "opacity 140ms linear, transform 140ms linear",
           }}
         >
-          Today
+          {dayTitle}
         </h1>
 
         <div
@@ -420,12 +638,13 @@ export default function TodayPage() {
             marginRight: -24,
             overflow: "hidden",
             paddingTop: 2,
-            touchAction: "pan-y",
+            touchAction: "none",
           }}
           onPointerDown={handleCarouselPointerDown}
           onPointerMove={handleCarouselPointerMove}
           onPointerUp={handleCarouselPointerEnd}
           onPointerCancel={handleCarouselPointerEnd}
+          onPointerLeave={handleCarouselPointerEnd}
         >
           <div
             style={{
@@ -453,14 +672,45 @@ export default function TodayPage() {
                     columnGap: 8,
                   }}
                 >
-                  {Array.from({ length: CARD_COUNT }, (_, i) => (
-                    <div key={i} style={cardStyle} />
-                  ))}
+                  {dayCardOrders[dayIdx].map((cardId, i) => {
+                    const card = getCardById(cardId) || CARD_CONTENT[0];
+                    const isDraggedCard = draggingCard && draggingCard.id === cardId;
+                    const isDropTarget = dragRef.current.active && dayIdx === activeIndex && dragHoverIndex === i;
+                    return (
+                      <div
+                        key={`${dayIdx}-${cardId}-${i}`}
+                        data-today-card-index={i}
+                        style={{ ...cardStyle, touchAction: "none", opacity: isDraggedCard ? 0.25 : 1, outline: isDropTarget ? "2px solid rgba(66,53,48,0.25)" : "none", cursor: "pointer" }}
+                        onPointerDown={(e) => handleCardPointerDown(e, dayIdx, i, cardId)}
+                        onPointerMove={handleCardPointerMove}
+                        onPointerUp={handleCardPointerUp}
+                        onPointerCancel={handleCardPointerCancel}
+                        onPointerLeave={handleCardPointerMove}
+                      >
+                        {/* No content in Today cards for now; cards are blank placeholders */}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        {draggingCard && (
+          <div
+            className="pointer-events-none fixed z-50"
+            style={{
+              left: dragPosition.x,
+              top: dragPosition.y,
+              width: 189,
+              height: 252,
+              transform: "translate(-50%, -50%) scale(1.02)",
+              ...cardStyle,
+              boxShadow: "0 8px 24px rgba(0, 0, 0, 0.14)",
+            }}
+          />
+        )}
 
         <div style={{ height: 130 }} />
       </div>
