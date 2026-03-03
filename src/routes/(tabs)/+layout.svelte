@@ -6,7 +6,6 @@
   import LoadScreen from '$lib/components/LoadScreen.svelte';
 
   const TAB_INDEX = { '/': 0, '/today': 1, '/threads': 2 };
-  const LOAD_SCREEN_DONE_KEY = 'loadScreenDone';
 
   let tabStageEl;
   let tabViewEl;
@@ -14,7 +13,7 @@
   let pendingDirection = null;
   let fromDetailEnter = false;
   let showLoadScreen = true;
-  /** Show nav 0.5s after load screen finishes; if load screen is skipped, nav is visible from start */
+  /** Show nav 0.5s after load screen finishes */
   let showNav = false;
   let navEnterActive = false;
 
@@ -24,10 +23,6 @@
   if (browser) {
     try {
       fromDetailEnter = sessionStorage.getItem('detailBackAnim') === '1';
-      if (sessionStorage.getItem(LOAD_SCREEN_DONE_KEY) === '1') {
-        showLoadScreen = false;
-        showNav = true;
-      }
     } catch {
       // ignore
     }
@@ -35,11 +30,6 @@
 
   function handleLoadScreenDone() {
     showLoadScreen = false;
-    try {
-      sessionStorage.setItem(LOAD_SCREEN_DONE_KEY, '1');
-    } catch {
-      // ignore
-    }
     setTimeout(() => {
       showNav = true;
     }, 500);
