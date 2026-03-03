@@ -2,8 +2,6 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { CARD_CONTENT, CARD_IDS } from '$lib/data/card-content';
-  import HomeScoresRow from '$lib/components/HomeScoresRow.svelte';
-
   const REFLECTION_STATE_KEY = 'reflectionState';
   const HAS_VIEWED_INSIGHT_KEY = 'hasViewedInsight';
 
@@ -45,8 +43,6 @@
 </script>
 
 <div class="page-body scrollbar-hide">
-  <HomeScoresRow />
-
   <div
     class="cards-grid"
     style="margin-left:-16px; margin-right:-16px; grid-template-columns:189px 189px; column-gap:8px; row-gap:8px; justify-content:center;"
