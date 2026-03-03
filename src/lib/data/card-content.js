@@ -1,19 +1,19 @@
 export const CARD_CONTENT = [
   {
     id: '0',
-    emoji: '🧠',
-    threadName: 'Mental health',
-    body: 'What does being back to yourself actually mean - runner, explorer, or something else?',
-    label: 'Awareness',
-    hasContent: true
+    emoji: '',
+    threadName: '',
+    body: '',
+    label: '',
+    hasContent: false
   },
   {
     id: '1',
-    emoji: '💪',
-    threadName: 'Recovering athelete',
-    body: 'You are already showing up for recovery every day. That is the work.',
-    label: 'Encouragement',
-    hasContent: true
+    emoji: '',
+    threadName: '',
+    body: '',
+    label: '',
+    hasContent: false
   },
   ...Array.from({ length: 10 }, (_, i) => ({
     id: String(i + 2),

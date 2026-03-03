@@ -3,21 +3,46 @@
   import { browser } from '$app/environment';
   import TopBar from '$lib/components/TopBar.svelte';
   import NavBar from '$lib/components/NavBar.svelte';
+  import LoadScreen from '$lib/components/LoadScreen.svelte';
 
   const TAB_INDEX = { '/': 0, '/today': 1, '/threads': 2 };
+  const LOAD_SCREEN_DONE_KEY = 'loadScreenDone';
 
   let tabStageEl;
   let tabViewEl;
   let enteringClass = '';
   let pendingDirection = null;
   let fromDetailEnter = false;
+  let showLoadScreen = true;
+  /** Show nav 0.5s after load screen finishes; if load screen is skipped, nav is visible from start */
+  let showNav = false;
+  let navEnterActive = false;
+
+  $: if (!showNav) navEnterActive = false;
+  $: if (showNav) requestAnimationFrame(() => { navEnterActive = true; });
 
   if (browser) {
     try {
       fromDetailEnter = sessionStorage.getItem('detailBackAnim') === '1';
+      if (sessionStorage.getItem(LOAD_SCREEN_DONE_KEY) === '1') {
+        showLoadScreen = false;
+        showNav = true;
+      }
     } catch {
       // ignore
     }
+  }
+
+  function handleLoadScreenDone() {
+    showLoadScreen = false;
+    try {
+      sessionStorage.setItem(LOAD_SCREEN_DONE_KEY, '1');
+    } catch {
+      // ignore
+    }
+    setTimeout(() => {
+      showNav = true;
+    }, 500);
   }
 
   function getTabIndex(pathname) {
@@ -74,12 +99,19 @@
   <main class="phone ios-frame" class:from-detail-enter={fromDetailEnter}>
     <img class="status-bar" src="/assets/status-bar.png" alt="" />
     <TopBar notifications={0} />
+    {#if showLoadScreen}
+      <LoadScreen on:done={handleLoadScreenDone} />
+    {/if}
     <div class="tab-stage" bind:this={tabStageEl}>
       <div class={`tab-view ${enteringClass}`} bind:this={tabViewEl}>
         <slot />
       </div>
     </div>
-    <NavBar />
+    {#if showNav}
+      <div class="nav-enter-wrap" class:active={navEnterActive}>
+        <NavBar />
+      </div>
+    {/if}
   </main>
 </div>
 
@@ -89,6 +121,7 @@
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    background: #eee1c4;
   }
 
   .tab-view {
@@ -143,5 +176,17 @@
     transform: translateX(0);
     opacity: 1;
     transition: transform 380ms ease, opacity 340ms ease;
+  }
+
+  .nav-enter-wrap {
+    position: relative;
+    transform: translateY(32px);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.34, 1.28, 0.64, 1), opacity 0.35s ease-out;
+  }
+
+  .nav-enter-wrap.active {
+    transform: translateY(0);
+    opacity: 1;
   }
 </style>
