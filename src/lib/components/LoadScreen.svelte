@@ -18,7 +18,8 @@
   let fadeOut = false;
   const DELAY_MS = 3000;
   const MOVE_IN_MS = 500;
-  const SPRING_OUT_MS = 600;
+  const SPRING_OUT_MS = 1000;
+  const BLOB_STAGGER_MAX_MS = 400; /* 5 blobs × 0.1s */
   const FADE_OUT_MS = 250;
 
   onMount(() => {
@@ -29,9 +30,9 @@
 
     const t2 = setTimeout(() => {
       moveInDone = true;
-    }, DELAY_MS + MOVE_IN_MS);
+    }, DELAY_MS + BLOB_STAGGER_MAX_MS + MOVE_IN_MS);
 
-    const springOutEnd = DELAY_MS + MOVE_IN_MS + SPRING_OUT_MS;
+    const springOutEnd = DELAY_MS + BLOB_STAGGER_MAX_MS + MOVE_IN_MS + SPRING_OUT_MS;
     const tFade = setTimeout(() => {
       fadeOut = true;
     }, springOutEnd);
@@ -123,46 +124,56 @@
     transition: none;
   }
 
-  /* After 3s: move in 20% toward phone center (201px, 437px for 402×874 phone) */
+  /* Move in: staggered 0.1s clockwise from top (2→4→3→6→5) */
   .load-screen.started .load-screen__blob {
-    transition: transform 500ms ease-out, opacity 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 500ms ease-out;
   }
 
   .load-screen.started .load-screen__blob:nth-child(2) {
     transform: translate(-40.13px, 87.45px);
-  }
-  .load-screen.started .load-screen__blob:nth-child(3) {
-    transform: translate(-40.13px, -56.35px);
+    transition-delay: 0s;
   }
   .load-screen.started .load-screen__blob:nth-child(4) {
     transform: translate(-40.13px, 22.65px);
+    transition-delay: 0.1s;
   }
-  .load-screen.started .load-screen__blob:nth-child(5) {
-    transform: translate(41.87px, 27.85px);
+  .load-screen.started .load-screen__blob:nth-child(3) {
+    transform: translate(-40.13px, -56.35px);
+    transition-delay: 0.2s;
   }
   .load-screen.started .load-screen__blob:nth-child(6) {
     transform: translate(40.17px, -86.85px);
+    transition-delay: 0.3s;
+  }
+  .load-screen.started .load-screen__blob:nth-child(5) {
+    transform: translate(41.87px, 27.85px);
+    transition-delay: 0.4s;
   }
 
-  /* Spring out: move each blob outward (no scale) — top-right, bottom-right, right, left, bottom-left */
+  /* Spring out: wait for last blob to finish zoom-in, then all fly out at once (override stagger with 0 delay) */
   .load-screen.move-in-done .load-screen__blob {
-    transition: transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 1000ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .load-screen.move-in-done .load-screen__blob:nth-child(2) {
     transform: translate(359.87px, -412.55px);
-  }
-  .load-screen.move-in-done .load-screen__blob:nth-child(3) {
-    transform: translate(359.87px, 443.65px);
+    transition-delay: 0s;
   }
   .load-screen.move-in-done .load-screen__blob:nth-child(4) {
     transform: translate(359.87px, -77.35px);
+    transition-delay: 0s;
   }
-  .load-screen.move-in-done .load-screen__blob:nth-child(5) {
-    transform: translate(-458.13px, -272.15px);
+  .load-screen.move-in-done .load-screen__blob:nth-child(3) {
+    transform: translate(359.87px, 443.65px);
+    transition-delay: 0s;
   }
   .load-screen.move-in-done .load-screen__blob:nth-child(6) {
     transform: translate(-459.83px, 413.15px);
+    transition-delay: 0s;
+  }
+  .load-screen.move-in-done .load-screen__blob:nth-child(5) {
+    transform: translate(-458.13px, -272.15px);
+    transition-delay: 0s;
   }
 
   .load-screen__logo-wrap {
@@ -189,6 +200,6 @@
   .load-screen.move-in-done .load-screen__logo-wrap {
     transform: translate(-50%, -50%) scale(0.95);
     opacity: 0;
-    transition: transform 200ms ease-out, opacity 200ms ease-out;
+    transition: transform 450ms ease-out, opacity 450ms ease-out;
   }
 </style>
