@@ -1,5 +1,6 @@
 <script>
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
 
   const NAV_DARK = '#423530';
   const NAV_ACTIVE_BG = '#423530';
@@ -43,7 +44,12 @@
     </a>
   </div>
 
-  <button class="nav-plus-btn" style="display:flex; width:72px; height:72px; padding:18px; justify-content:center; align-items:center; border-radius:28px; border:1px solid rgba(0,0,0,0.10); background:#F7F0E1; box-shadow:0 4px 20px 0 rgba(0,0,0,0.15); pointer-events:auto;" aria-label="Create new">
+  <button
+    class="nav-plus-btn"
+    style="display:flex; width:72px; height:72px; padding:18px; justify-content:center; align-items:center; border-radius:28px; border:1px solid rgba(0,0,0,0.10); background:#F7F0E1; box-shadow:0 4px 20px 0 rgba(0,0,0,0.15); pointer-events:auto;"
+    aria-label="Create new"
+    on:click={() => goto('/add?from=' + encodeURIComponent($page.url.pathname))}
+  >
     <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M1.39062 14.2812C0.640625 14.2812 0 13.6562 0 12.8906C0 12.125 0.640625 11.4844 1.39062 11.4844H11.5V1.39062C11.5 0.640625 12.125 0 12.8906 0C13.6562 0 14.2969 0.640625 14.2969 1.39062V11.4844H24.3906C25.1406 11.4844 25.7812 12.125 25.7812 12.8906C25.7812 13.6562 25.1406 14.2812 24.3906 14.2812H14.2969V24.3906C14.2969 25.1406 13.6562 25.7812 12.8906 25.7812C12.125 25.7812 11.5 25.1406 11.5 24.3906V14.2812H1.39062Z" fill="#423530" />
     </svg>

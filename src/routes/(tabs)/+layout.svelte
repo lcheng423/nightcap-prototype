@@ -23,6 +23,10 @@
   if (browser) {
     try {
       fromDetailEnter = sessionStorage.getItem('detailBackAnim') === '1';
+      if (sessionStorage.getItem('hasSeenLoadScreen') === '1') {
+        showLoadScreen = false;
+        showNav = true;
+      }
     } catch {
       // ignore
     }
@@ -30,6 +34,9 @@
 
   function handleLoadScreenDone() {
     showLoadScreen = false;
+    if (browser) {
+      try { sessionStorage.setItem('hasSeenLoadScreen', '1'); } catch {}
+    }
     setTimeout(() => {
       showNav = true;
     }, 500);
