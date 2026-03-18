@@ -24,18 +24,23 @@
 
   let stageEl;
   let blobLayout = [];
-  let timelineEl;
+  let timelineShellEl;
+  let timelineTrackEl;
   let timelineLabelEl;
   let selectedTick = 34;
+  let isScrubbing = false;
+  let timelineLabelText = 'Today';
   let timelineLabelStyle = '';
-  let isDraggingTimeline = false;
+  let selectedTickStyle = '';
+  let futureRangeFillStyle = '';
+  let pastRangeDimStyle = '';
 
   const TICK_COUNT = 68;
   const PRESENT_TICK = 34;
   const TICK_WIDTH = 2;
-  const TICK_GAP = 3;
-  const TRACK_SIDE_PADDING = 6;
-  const TIMELINE = Array.from({ length: TICK_COUNT }, (_, index) => ({ id: index }));
+  const TRACK_GAP = 3;
+  const TRACK_PADDING = 6;
+  const TIMELINE = Array.from({ length: TICK_COUNT }, (_, id) => ({ id }));
 
   function randomBetween(min, max) {
     return min + Math.random() * (max - min);
@@ -80,23 +85,15 @@
 
       return {
         ...item,
-        style: [
-          `left:${x}px`,
-          `top:${y}px`,
-          `width:${size}px`,
-          `height:${size}px`,
-          `--blob-dx:${driftX}px`,
-          `--blob-dy:${driftY}px`,
-          `--drift-duration:${driftDuration}s`,
-          `--bob-duration:${bobDuration}s`,
-          `--blob-delay:${delay}s`
-        ].join(';'),
-        surfaceStyle: [
-          `padding:${padY}px ${padX}px`,
-          `gap:${gap}px`,
-          `border-radius:${radius}px`,
-          `background:radial-gradient(50% 50% at 50% 50%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.60) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.00) 100%)`
-        ].join(';')
+        x,
+        y,
+        baseSize: size,
+        driftX,
+        driftY,
+        driftDuration,
+        bobDuration,
+        delay,
+        rgb
       };
     });
   }
@@ -110,87 +107,227 @@
     return clamp(index, 0, TICK_COUNT - 1);
   }
 
-  function trackMetrics() {
-    const pitch = TICK_WIDTH + TICK_GAP;
-    const usable = (TICK_COUNT - 1) * pitch;
-    const total = usable + TRACK_SIDE_PADDING * 2;
-    return { pitch, usable, total };
+  function selectTick(index) {
+    selectedTick = clampIndex(index);
   }
 
-  function selectedTickFromPointer(clientX) {
-    if (!timelineEl) return selectedTick;
-    const rect = timelineEl.getBoundingClientRect();
-    const { pitch, usable, total } = trackMetrics();
-    const centeredTrackLeft = (rect.width - total) / 2;
-    const x = clamp(clientX - rect.left - centeredTrackLeft - TRACK_SIDE_PADDING, 0, usable);
-    return clampIndex(Math.round(x / pitch));
+  function tickIndexFromTrackClientX(clientX) {
+    if (!timelineTrackEl) return selectedTick;
+    const rect = timelineTrackEl.getBoundingClientRect();
+    const usable = Math.max(1, rect.width - TRACK_PADDING * 2);
+    const x = clamp(clientX - rect.left - TRACK_PADDING, 0, usable);
+    return clampIndex(Math.round((x / usable) * (TICK_COUNT - 1)));
   }
 
-  function handleTimelinePointerDown(event) {
-    isDraggingTimeline = true;
-    if (timelineEl && event.pointerId !== undefined) {
-      timelineEl.setPointerCapture(event.pointerId);
+  function handleTrackPointerDown(event) {
+    isScrubbing = true;
+    selectTick(tickIndexFromTrackClientX(event.clientX));
+    if (timelineTrackEl && event.pointerId !== undefined) {
+      timelineTrackEl.setPointerCapture(event.pointerId);
     }
-    selectedTick = selectedTickFromPointer(event.clientX);
   }
 
-  function handleTimelinePointerMove(event) {
-    if (!isDraggingTimeline) return;
-    selectedTick = selectedTickFromPointer(event.clientX);
+  function handleTrackPointerMove(event) {
+    if (!isScrubbing) return;
+    selectTick(tickIndexFromTrackClientX(event.clientX));
   }
 
-  function handleTimelinePointerUp() {
-    isDraggingTimeline = false;
+  function handleTrackPointerUp() {
+    isScrubbing = false;
   }
 
-  function labelForSelectedTick() {
-    const delta = PRESENT_TICK - selectedTick;
+  function buildLabelForTick(index) {
+    const delta = PRESENT_TICK - index;
     if (delta === 0) return 'Today';
     const months = Math.abs(delta);
+    const direction = delta > 0 ? 'past' : 'future';
+
+    function seasonForMonth(monthIndex) {
+      if (monthIndex === 11 || monthIndex <= 1) return 'winter';
+      if (monthIndex >= 2 && monthIndex <= 4) return 'spring';
+      if (monthIndex >= 5 && monthIndex <= 7) return 'summer';
+      return 'fall';
+    }
+
+    // Offset from current month to get a natural season label.
+    const now = new Date();
+    const target = new Date(now.getFullYear(), now.getMonth() + (direction === 'past' ? -months : months), 1);
+    const targetSeason = seasonForMonth(target.getMonth());
+
     if (months < 12) {
       const unit = months === 1 ? 'month' : 'months';
       return delta > 0 ? `${months} ${unit} ago` : `${months} ${unit} from now`;
     }
+
+    if (months < 24) {
+      return direction === 'past' ? `Last ${targetSeason}` : `Next ${targetSeason}`;
+    }
+
     const years = Math.round((months / 12) * 10) / 10;
     return delta > 0 ? `${years} years ago` : `${years} years from now`;
   }
 
-  function tickStyle(index) {
-    const isSelected = index === selectedTick;
-    const isPast = index <= PRESENT_TICK;
-    const inPastGapToPresent = selectedTick < PRESENT_TICK && index > selectedTick && index <= PRESENT_TICK;
-    const inFutureRangeToSelected = selectedTick > PRESENT_TICK && index >= PRESENT_TICK && index <= selectedTick;
+  function blobScale(blobId) {
+    const monthsAgo = PRESENT_TICK - selectedTick;
+    const isRecentPastFocus = monthsAgo === 1 || monthsAgo === 2;
+    if (!isRecentPastFocus) return 1;
 
-    let background = 'rgba(218, 95, 61, 0.2)';
-    if (isPast) background = 'rgba(66, 53, 48, 1)';
-    if (inPastGapToPresent && !isSelected) background = 'rgba(66, 53, 48, 0.2)';
-    if (!isPast && !isSelected) background = 'rgba(218, 95, 61, 0.2)';
-    if (inFutureRangeToSelected && !isSelected) background = 'rgba(218, 95, 61, 1)';
-    if (isSelected) background = selectedTick >= PRESENT_TICK ? 'rgba(218, 95, 61, 1)' : 'rgba(66, 53, 48, 1)';
+    if (blobId === 'me' || blobId === 'future' || blobId === 'self') return 1.95;
+    if (blobId === 'friend' || blobId === 'creativity') return 0.35;
+    return 1;
+  }
 
+  function blobAlpha(blobId) {
+    const monthsAgo = PRESENT_TICK - selectedTick;
+    const isRecentPastFocus = monthsAgo === 1 || monthsAgo === 2;
+    if (!isRecentPastFocus) return 1;
+
+    if (blobId === 'me' || blobId === 'future' || blobId === 'self') return 1;
+    if (blobId === 'friend' || blobId === 'creativity') return 0.28;
+    return 1;
+  }
+
+  function blobOuterStyle(blob) {
+    const size = Math.round(blob.baseSize * blobScale(blob.id));
     return [
-      `height:${isSelected ? 32 : 26}px`,
-      `width:${TICK_WIDTH}px`,
-      'border-radius:2px',
-      `background:${background}`,
-      'transition:height 180ms ease, background 180ms ease'
+      `left:${blob.x}px`,
+      `top:${blob.y}px`,
+      `width:${size}px`,
+      `height:${size}px`,
+      `--blob-dx:${blob.driftX}px`,
+      `--blob-dy:${blob.driftY}px`,
+      `--drift-duration:${blob.driftDuration}s`,
+      `--bob-duration:${blob.bobDuration}s`,
+      `--blob-delay:${blob.delay}s`,
+      `opacity:${blobAlpha(blob.id)}`
+    ].join(';');
+  }
+
+  function blobSurfaceStyle(blob) {
+    const size = blob.baseSize * blobScale(blob.id);
+    const padY = 15.73 * (size / BASE_SIZE);
+    const padX = 30.25 * (size / BASE_SIZE);
+    const gap = 12.1 * (size / BASE_SIZE);
+    const radius = 24.2 * (size / BASE_SIZE);
+    return [
+      `padding:${padY}px ${padX}px`,
+      `gap:${gap}px`,
+      `border-radius:${radius}px`,
+      `background:radial-gradient(50% 50% at 50% 50%, rgba(${blob.rgb.r}, ${blob.rgb.g}, ${blob.rgb.b}, 0.60) 0%, rgba(${blob.rgb.r}, ${blob.rgb.g}, ${blob.rgb.b}, 0.00) 100%)`
     ].join(';');
   }
 
   function labelColor() {
-    return selectedTick > PRESENT_TICK ? '#DA5F3D' : '#423530';
+    return selectedTick >= PRESENT_TICK ? '#DA5F3D' : '#423530';
+  }
+
+  function tickStyle(index) {
+    const isPast = index <= PRESENT_TICK;
+    const color = isPast
+      ? '#423530'
+      : 'rgba(218, 95, 61, 0.3)';
+
+    return [
+      'height:26px',
+      `width:${TICK_WIDTH}px`,
+      'border-radius:2px',
+      `background:${color}`,
+      'transition:background 160ms ease'
+    ].join(';');
+  }
+
+  function selectedTickColor() {
+    return selectedTick >= PRESENT_TICK ? '#DA5F3D' : '#423530';
+  }
+
+  function refreshSelectedTickPosition() {
+    if (!timelineTrackEl) return;
+    const trackRect = timelineTrackEl.getBoundingClientRect();
+    const hitEl = timelineTrackEl.querySelector(`.tick-hit[data-tick-index="${selectedTick}"]`);
+    if (!hitEl) return;
+    const hitRect = hitEl.getBoundingClientRect();
+    const tickCenterInTrack = hitRect.left - trackRect.left + hitRect.width / 2;
+    selectedTickStyle = [
+      `left:${tickCenterInTrack}px`,
+      'bottom:0',
+      'width:2px',
+      'height:32px',
+      'border-radius:2px',
+      `background:${selectedTickColor()}`,
+      'transform:translateX(-50%)',
+      'position:absolute',
+      'pointer-events:none',
+      'transition:left 140ms ease, background 140ms ease'
+    ].join(';');
+  }
+
+  function refreshFutureRangeFill() {
+    if (!timelineTrackEl || selectedTick <= PRESENT_TICK) {
+      futureRangeFillStyle = 'display:none';
+      return;
+    }
+
+    const trackRect = timelineTrackEl.getBoundingClientRect();
+    const inner = Math.max(1, trackRect.width - TRACK_PADDING * 2);
+    const colWidth = Math.max(0, (inner - (TICK_COUNT - 1) * TRACK_GAP) / TICK_COUNT);
+    const step = colWidth + TRACK_GAP;
+    const startCenter = TRACK_PADDING + (PRESENT_TICK + 1) * step + colWidth / 2;
+    const endCenter = TRACK_PADDING + selectedTick * step + colWidth / 2;
+    const left = Math.max(TRACK_PADDING, startCenter - TICK_WIDTH / 2);
+    const width = Math.max(TICK_WIDTH, endCenter - startCenter + TICK_WIDTH);
+
+    futureRangeFillStyle = [
+      'display:block',
+      `left:${left}px`,
+      `width:${width}px`,
+      'bottom:0',
+      'height:26px',
+      'position:absolute',
+      'pointer-events:none',
+      'z-index:1',
+      'background:repeating-linear-gradient(to right, #DA5F3D 0 2px, transparent 2px 5px)'
+    ].join(';');
+  }
+
+  function refreshPastRangeDim() {
+    if (!timelineTrackEl || selectedTick >= PRESENT_TICK) {
+      pastRangeDimStyle = 'display:none';
+      return;
+    }
+
+    const trackRect = timelineTrackEl.getBoundingClientRect();
+    const inner = Math.max(1, trackRect.width - TRACK_PADDING * 2);
+    const colWidth = Math.max(0, (inner - (TICK_COUNT - 1) * TRACK_GAP) / TICK_COUNT);
+    const step = colWidth + TRACK_GAP;
+    const startCenter = TRACK_PADDING + (selectedTick + 1) * step + colWidth / 2;
+    const endCenter = TRACK_PADDING + PRESENT_TICK * step + colWidth / 2;
+    const left = Math.max(TRACK_PADDING, startCenter - TICK_WIDTH / 2);
+    const width = Math.max(TICK_WIDTH, endCenter - startCenter + TICK_WIDTH);
+
+    pastRangeDimStyle = [
+      'display:block',
+      `left:${left}px`,
+      `width:${width}px`,
+      'bottom:0',
+      'height:26px',
+      'position:absolute',
+      'pointer-events:none',
+      'z-index:1',
+      'background:rgba(238, 225, 196, 0.7)'
+    ].join(';');
   }
 
   function refreshLabelPosition() {
-    if (!timelineEl || !timelineLabelEl) return;
-    const shellRect = timelineEl.getBoundingClientRect();
-    const { pitch, total } = trackMetrics();
-    const centeredTrackLeft = (shellRect.width - total) / 2;
-    const tickCenter = centeredTrackLeft + TRACK_SIDE_PADDING + selectedTick * pitch + TICK_WIDTH / 2;
-    const containerWidth = timelineEl.clientWidth;
+    if (!timelineShellEl || !timelineTrackEl || !timelineLabelEl) return;
+    const shellRect = timelineShellEl.getBoundingClientRect();
+    const trackRect = timelineTrackEl.getBoundingClientRect();
+    const usable = Math.max(1, trackRect.width - TRACK_PADDING * 2);
+    const tickCenterInTrack = TRACK_PADDING + (selectedTick / (TICK_COUNT - 1)) * usable;
+    const tickCenter = trackRect.left - shellRect.left + tickCenterInTrack;
     const labelWidth = timelineLabelEl.offsetWidth;
+    const maxRight = shellRect.width;
 
-    if (tickCenter + labelWidth <= containerWidth) {
+    if (tickCenter + labelWidth <= maxRight) {
       timelineLabelStyle = [
         `left:${Math.max(0, tickCenter)}px`,
         'right:auto',
@@ -202,7 +339,7 @@
 
     timelineLabelStyle = [
       'left:auto',
-      `right:${Math.max(0, containerWidth - tickCenter)}px`,
+      `right:${Math.max(0, maxRight - tickCenter)}px`,
       'text-align:right',
       `color:${labelColor()}`
     ].join(';');
@@ -212,29 +349,46 @@
     refreshBlobLayout();
     window.addEventListener('resize', refreshBlobLayout);
     window.addEventListener('resize', refreshLabelPosition);
-    window.addEventListener('pointerup', handleTimelinePointerUp);
-    window.addEventListener('pointercancel', handleTimelinePointerUp);
+    window.addEventListener('resize', refreshSelectedTickPosition);
+    window.addEventListener('resize', refreshFutureRangeFill);
+    window.addEventListener('resize', refreshPastRangeDim);
+    window.addEventListener('pointerup', handleTrackPointerUp);
+    window.addEventListener('pointercancel', handleTrackPointerUp);
     requestAnimationFrame(() => {
       refreshLabelPosition();
+      refreshSelectedTickPosition();
+      refreshFutureRangeFill();
+      refreshPastRangeDim();
     });
     return () => {
       window.removeEventListener('resize', refreshBlobLayout);
       window.removeEventListener('resize', refreshLabelPosition);
-      window.removeEventListener('pointerup', handleTimelinePointerUp);
-      window.removeEventListener('pointercancel', handleTimelinePointerUp);
+      window.removeEventListener('resize', refreshSelectedTickPosition);
+      window.removeEventListener('resize', refreshFutureRangeFill);
+      window.removeEventListener('resize', refreshPastRangeDim);
+      window.removeEventListener('pointerup', handleTrackPointerUp);
+      window.removeEventListener('pointercancel', handleTrackPointerUp);
     };
   });
 
   $: selectedTick, refreshLabelPosition();
+  $: selectedTick, refreshSelectedTickPosition();
+  $: selectedTick, refreshFutureRangeFill();
+  $: selectedTick, refreshPastRangeDim();
+  $: timelineLabelText = buildLabelForTick(selectedTick);
 </script>
 
 <div class="page-body scrollbar-hide">
   <div class="threads-blob-stage" bind:this={stageEl}>
     {#each blobLayout as blob (blob.id)}
-      <div class="blob" style={blob.style} aria-label={blob.label}>
+      <div
+        class="blob"
+        style={blobOuterStyle(blob)}
+        aria-label={blob.label}
+      >
         <div class="blob-drift">
           <div class="blob-bob">
-            <div class="blob-surface" style={blob.surfaceStyle}>
+            <div class="blob-surface" style={blobSurfaceStyle(blob)}>
               <span class="blob-label">{blob.label}</span>
             </div>
           </div>
@@ -242,44 +396,57 @@
       </div>
     {/each}
   </div>
-
-  <div class="timeline-shell">
+  <div class="timeline-shell" bind:this={timelineShellEl}>
     <div class="timeline-label-wrap">
       <div class="timeline-label" style={timelineLabelStyle} bind:this={timelineLabelEl}>
-        {labelForSelectedTick()}
+        {timelineLabelText}
       </div>
     </div>
     <div
-      class="timeline-scroll scrollbar-hide"
-      bind:this={timelineEl}
-      on:pointerdown={handleTimelinePointerDown}
-      on:pointermove={handleTimelinePointerMove}
-      on:keydown={(event) => {
-        if (event.key === 'ArrowLeft') selectedTick = clampIndex(selectedTick - 1);
-        if (event.key === 'ArrowRight') selectedTick = clampIndex(selectedTick + 1);
-      }}
+      class="timeline-track"
+      bind:this={timelineTrackEl}
       role="slider"
       tabindex="0"
       aria-valuemin="0"
       aria-valuemax={TICK_COUNT - 1}
       aria-valuenow={selectedTick}
-      aria-label="Threads timeline"
+      aria-label="Timeline"
+      on:keydown={(event) => {
+        if (event.key === 'ArrowLeft') selectTick(selectedTick - 1);
+        if (event.key === 'ArrowRight') selectTick(selectedTick + 1);
+      }}
+      on:pointerdown={handleTrackPointerDown}
+      on:pointermove={handleTrackPointerMove}
+      on:click={(event) => {
+        selectTick(tickIndexFromTrackClientX(event.clientX));
+      }}
     >
-      <div class="timeline-track">
-        {#each TIMELINE as tick (tick.id)}
-          <button
-            class="tick-btn"
-            style={tickStyle(tick.id)}
-            on:click={() => {
-              selectedTick = tick.id;
-              refreshLabelPosition();
-            }}
-            aria-label={`Select time ${tick.id}`}
-          ></button>
-        {/each}
-      </div>
+      <div class="past-range-dim" style={pastRangeDimStyle} aria-hidden="true"></div>
+      <div class="future-range-fill" style={futureRangeFillStyle} aria-hidden="true"></div>
+      {#each TIMELINE as tick (tick.id)}
+        <button
+          class="tick-hit"
+          data-tick-index={tick.id}
+          on:click|stopPropagation={() => selectTick(tick.id)}
+          on:pointerdown={(event) => {
+            isScrubbing = true;
+            selectTick(tick.id);
+            if (timelineTrackEl && event.pointerId !== undefined) {
+              timelineTrackEl.setPointerCapture(event.pointerId);
+            }
+          }}
+          on:pointerenter={() => {
+            if (isScrubbing) selectTick(tick.id);
+          }}
+          aria-label={`Select time ${tick.id}`}
+        >
+          <span class="tick" style={tickStyle(tick.id)}></span>
+        </button>
+      {/each}
+      <div class="selected-tick" style={selectedTickStyle} aria-hidden="true"></div>
     </div>
   </div>
+
 </div>
 
 <style>
@@ -306,18 +473,20 @@
     left: 24px;
     right: 24px;
     bottom: 130px;
+    z-index: 20;
+    pointer-events: auto;
+    overflow: hidden;
   }
 
   .timeline-label-wrap {
     position: relative;
     height: 18px;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
   }
 
   .timeline-label {
     position: absolute;
     top: 0;
-    color: #423530;
     font-family: 'DIN Rounded', sans-serif;
     font-size: 15px;
     font-style: normal;
@@ -325,37 +494,62 @@
     line-height: normal;
     letter-spacing: 0;
     white-space: nowrap;
-    transition: color 180ms ease, left 180ms ease, right 180ms ease;
-  }
-
-  .timeline-scroll {
-    overflow: hidden;
-    padding: 0;
-    touch-action: none;
-    cursor: ew-resize;
+    transition: left 140ms ease, right 140ms ease, color 140ms ease;
   }
 
   .timeline-track {
-    display: flex;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(68, minmax(0, 1fr));
+    column-gap: 3px;
     align-items: flex-end;
-    gap: 3px;
-    width: max-content;
+    width: 100%;
     padding: 0 6px;
-    margin: 0 auto;
+    touch-action: none;
+    box-sizing: border-box;
   }
 
-  .tick-btn {
+  .tick-hit {
+    position: relative;
+    width: 100%;
+    height: 40px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
     border: none;
     padding: 0;
-    cursor: pointer;
+    margin: 0;
     background: transparent;
+    cursor: ew-resize;
+    touch-action: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+  }
+
+  .tick-hit:focus,
+  .tick-hit:focus-visible,
+  .tick-hit:active {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .tick {
+    display: block;
     flex: 0 0 auto;
+    pointer-events: none;
+  }
+
+  .selected-tick {
+    z-index: 3;
   }
 
   .blob {
     position: absolute;
     transform: translate(-50%, -50%);
     will-change: transform;
+    transition: width 280ms ease, height 280ms ease, opacity 280ms ease;
   }
 
   .blob-drift {
@@ -417,8 +611,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .blob-drift,
-    .blob-bob,
-    .tick-btn {
+    .blob-bob {
       animation: none;
     }
   }
